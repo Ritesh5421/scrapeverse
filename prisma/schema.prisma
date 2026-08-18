@@ -1,0 +1,31 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  createdAt DateTime @default(now())
+
+  preferences UserPreferences?
+}
+
+model UserPreferences {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  interests       String   @default("[]")
+  experienceLevel String?
+  goals           String   @default("[]")
+  languages       String   @default("[]")
+  customLanguages String   @default("[]")
+  timeCommitment  String?
+  updatedAt       DateTime @updatedAt
+}
