@@ -18,7 +18,7 @@ import type {
   OnboardingPreferences,
 } from "@/lib/types";
 
-type EditorSection = "overview" | "interests" | "experience" | "goals" | "languages" | "time";
+type EditorSection = "overview" | "interests" | "experience" | "goals" | "languages" | "time" | "password";
 
 interface PreferencesEditorProps {
   onClose: () => void;
@@ -47,6 +47,13 @@ export function PreferencesEditor({ onClose }: PreferencesEditorProps) {
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+
   const toggleItem = useCallback(
     <T,>(setter: React.Dispatch<React.SetStateAction<T[]>>, item: T) => {
       setter((prev) =>
@@ -74,6 +81,47 @@ export function PreferencesEditor({ onClose }: PreferencesEditorProps) {
       setTimeout(() => setSaved(false), 2000);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handlePasswordChange = async () => {
+    setPasswordError("");
+    setPasswordSuccess(false);
+
+    if (!currentPassword || !newPassword) {
+      setPasswordError("Both fields are required");
+      return;
+    }
+    if (newPassword.length < 4) {
+      setPasswordError("New password must be at least 4 characters");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Passwords do not match");
+      return;
+    }
+
+    setChangingPassword(true);
+    try {
+      const res = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setPasswordError(data.error || "Failed to change password");
+        return;
+      }
+      setPasswordSuccess(true);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setTimeout(() => setPasswordSuccess(false), 3000);
+    } catch {
+      setPasswordError("Failed to change password");
+    } finally {
+      setChangingPassword(false);
     }
   };
 
@@ -138,6 +186,16 @@ export function PreferencesEditor({ onClose }: PreferencesEditorProps) {
                   </div>
                 </button>
               ))}
+
+              <button
+                onClick={() => setSection("password")}
+                className="flex items-center justify-between p-4 rounded-lg border border-border bg-card hover:border-muted-foreground/50 transition-all cursor-pointer text-left"
+              >
+                <span className="text-sm font-medium text-foreground">
+                  Change Password
+                </span>
+                <span className="text-muted-foreground text-xs">→</span>
+              </button>
             </div>
 
             <div className="flex justify-end pt-4">
@@ -276,6 +334,70 @@ export function PreferencesEditor({ onClose }: PreferencesEditorProps) {
                 className="cursor-pointer"
               >
                 Done
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {section === "password" && (
+          <div>
+            <button
+              onClick={() => setSection("overview")}
+              className="text-xs text-muted-foreground hover:text-foreground mb-6 cursor-pointer flex items-center gap-1"
+            >
+              ← Back
+            </button>
+            <h2 className="text-sm font-semibold text-foreground mb-6">
+              Change Password
+            </h2>
+            <div className="space-y-4 max-w-sm">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1.5 block">
+                  Current Password
+                </label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="w-full h-9 rounded-md border border-input bg-input/20 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1.5 block">
+                  New Password
+                </label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full h-9 rounded-md border border-input bg-input/20 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1.5 block">
+                  Confirm New Password
+                </label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full h-9 rounded-md border border-input bg-input/20 px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
+                />
+              </div>
+
+              {passwordError && (
+                <p className="text-xs text-red-400">{passwordError}</p>
+              )}
+              {passwordSuccess && (
+                <p className="text-xs text-emerald-400">Password changed successfully</p>
+              )}
+
+              <Button
+                onClick={handlePasswordChange}
+                disabled={changingPassword}
+                className="cursor-pointer"
+              >
+                {changingPassword ? "Changing..." : "Change Password"}
               </Button>
             </div>
           </div>
