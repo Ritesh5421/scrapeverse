@@ -25,31 +25,18 @@ export function ResultsPage({
 
   const filtered = useMemo(() => {
     return recommendations.filter((rec) => {
-      if (rec.stars < filters.minStars) return false;
       if (
         filters.language !== "any" &&
-        rec.primaryLanguage !== filters.language
+        rec.repoLanguage !== filters.language
       )
+        return false;
+      if (filters.beginnerFriendlyOnly && rec.difficulty !== "beginner")
         return false;
       if (
-        filters.activityLevel !== "any" &&
-        rec.activityLevel !== filters.activityLevel
+        filters.maxDifficulty !== "any" &&
+        rec.difficulty !== filters.maxDifficulty
       )
         return false;
-      if (filters.beginnerFriendlyOnly && rec.openBeginnerIssues === 0)
-        return false;
-      if (
-        filters.systemsProjectsOnly &&
-        !rec.badges.includes("Systems Programming")
-      )
-        return false;
-      if (filters.maxDifficulty !== "any") {
-        if (
-          filters.maxDifficulty === "beginner" &&
-          rec.openBeginnerIssues === 0
-        )
-          return false;
-      }
       return true;
     });
   }, [recommendations, filters]);
@@ -64,11 +51,11 @@ export function ResultsPage({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <div>
             <h1 className="text-lg font-semibold text-foreground">
-              Your Recommendations
+              Your Issue Recommendations
             </h1>
             <p className="text-xs text-muted-foreground">
               {filtered.length}{" "}
-              {filtered.length === 1 ? "project" : "projects"} found
+              {filtered.length === 1 ? "issue" : "issues"} found
             </p>
           </div>
           <div className="flex items-center gap-2">

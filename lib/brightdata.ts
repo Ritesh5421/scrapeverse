@@ -2,7 +2,6 @@ import { bdclient } from "@brightdata/sdk";
 
 const TRENDING_SCRAPER_ID = "c_mszmts63lwxh4wh0h";
 const REPO_SCRAPER_ID = "c_mszma8ux1xoygpchmn";
-const ISSUES_SCRAPER_ID = "c_mszmcri32bjkg1yaf";
 
 const client = new bdclient({
   apiKey: process.env.BRIGHTDATA_API_KEY!,
@@ -26,10 +25,14 @@ export interface RepoData {
   default_branch: string;
 }
 
-export interface IssuesData {
-  good_first_issue_count: number;
-  help_wanted_count: number;
-  total_open_issues: number;
+export interface IssueData {
+  number: number;
+  title: string;
+  url: string;
+  labels: string[];
+  comments: number;
+  author: string | null;
+  createdAt: string;
 }
 
 export async function discoverTrendingRepos(): Promise<string[]> {
@@ -86,20 +89,53 @@ export async function scrapeRepos(urls: string[]): Promise<RepoData[]> {
   }
 }
 
-export async function scrapeIssues(url: string): Promise<IssuesData | null> {
-  try {
-    const results = await client.scraperStudio.run(ISSUES_SCRAPER_ID, {
-      input: { url },
-    });
-    const first = results[0];
-    if (!first || first.error || !first.data?.[0]) {
-      return null;
+export async function fetchIssues(
+  owner: string,
+  repo: string,
+  labels: string[] = ["good first issue", "help wanted"]
+): Promise<IssueData[]> {
+  const allIssues: IssueData[] = [];
+
+  for (const label of labels) {
+    try {
+      const url = `https://api.github.com/repos/${owner}/${repo}/issues?labels=${encodeURIComponent(label)}&state=open&per_page=10`;
+      const response = await fetch(url, {
+        headers: {
+          Accept: "application/vnd.github.v3+json",
+          "User-Agent": "scrapeverse/0.1.0",
+        },
+      });
+
+      if (!response.ok) {
+        console.error(`GitHub API error for ${owner}/${repo}: ${response.status}`);
+        continue;
+      }
+
+      const issues = await response.json();
+      for (const issue of issues) {
+        if (issue.pull_request) continue;
+
+        allIssues.push({
+          number: issue.number,
+          title: issue.title,
+          url: issue.html_url,
+          labels: issue.labels.map((l: { name: string }) => l.name),
+          comments: issue.comments,
+          author: issue.user?.login ?? null,
+          createdAt: issue.created_at,
+        });
+      }
+    } catch (err) {
+      console.error(`Failed to fetch issues for ${owner}/${repo} label=${label}:`, err);
     }
-    return first.data[0] as IssuesData;
-  } catch (err) {
-    console.error(`Failed to scrape issues ${url}:`, err);
-    return null;
   }
+
+  const seen = new Set<number>();
+  return allIssues.filter((issue) => {
+    if (seen.has(issue.number)) return false;
+    seen.add(issue.number);
+    return true;
+  });
 }
 
 export async function closeClient(): Promise<void> {

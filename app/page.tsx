@@ -17,6 +17,7 @@ import type {
   ProgrammingLanguage,
   TimeCommitment,
   OnboardingPreferences,
+  Recommendation,
 } from "@/lib/types";
 
 export default function Home() {
@@ -24,6 +25,7 @@ export default function Home() {
   const [view, setView] = useState<AppView>("landing");
   const [step, setStep] = useState<OnboardingStep>(1);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [recommendations, setRecommendations] = useState<Recommendation[]>(mockRecommendations);
 
   const [interests, setInterests] = useState<Interest[]>([]);
   const [experienceLevel, setExperienceLevel] =
@@ -81,18 +83,25 @@ export default function Home() {
     [interests, experienceLevel, goals, languages, customLanguages, timeCommitment]
   );
 
-  const recommendations = useMemo(() => {
-    return mockRecommendations.filter((rec) => {
-      const langMatch =
-        currentPrefs.languages.some(
-          (l) => l.toLowerCase() === rec.primaryLanguage.toLowerCase()
-        ) ||
-        currentPrefs.customLanguages.some(
-          (l) => l.toLowerCase() === rec.primaryLanguage.toLowerCase()
-        );
-      return langMatch;
-    });
-  }, [currentPrefs]);
+  const loadRecommendations = useCallback(async () => {
+    const allLanguages = [...languages, ...customLanguages];
+    if (allLanguages.length === 0) return;
+
+    try {
+      const params = new URLSearchParams({
+        languages: allLanguages.join(","),
+        interests: interests.join(","),
+      });
+      const res = await fetch(`/api/recommendations?${params}`);
+      if (!res.ok) throw new Error("Failed to fetch");
+      const data = await res.json();
+      if (data.recommendations?.length > 0) {
+        setRecommendations(data.recommendations);
+      }
+    } catch {
+      setRecommendations(mockRecommendations);
+    }
+  }, [languages, customLanguages, interests]);
 
   const loadPrefsToState = useCallback((prefs: OnboardingPreferences) => {
     setInterests(prefs.interests);
@@ -107,6 +116,7 @@ export default function Home() {
     if (user?.preferences) {
       loadPrefsToState(user.preferences);
       setView("results");
+      loadRecommendations();
       return;
     }
     setAuthModalOpen(true);
@@ -117,6 +127,7 @@ export default function Home() {
     if (authUser.preferences) {
       loadPrefsToState(authUser.preferences);
       setView("results");
+      loadRecommendations();
     } else {
       setView("onboarding");
       setStep(1);
@@ -136,6 +147,7 @@ export default function Home() {
       await updatePreferences(currentPrefs);
     }
     setView("results");
+    loadRecommendations();
   };
 
   const handleRestart = () => {

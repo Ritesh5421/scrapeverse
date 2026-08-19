@@ -1,90 +1,93 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getFreshRepos, isDataStale, runScrapePipeline } from "@/lib/scraper-pipeline";
-import type { Recommendation, ActivityLevel, Badge } from "@/lib/types";
+import { getIssuesWithRepo, isDataStale, runScrapePipeline } from "@/lib/scraper-pipeline";
+import type { Recommendation } from "@/lib/types";
 
-function calculateActivityLevel(scrapedAt: Date): ActivityLevel {
-  const hoursSinceUpdate = (Date.now() - scrapedAt.getTime()) / (1000 * 60 * 60);
-  if (hoursSinceUpdate < 6) return "Very High";
-  if (hoursSinceUpdate < 48) return "High";
-  if (hoursSinceUpdate < 168) return "Moderate";
-  return "Low";
+function classifyDifficulty(labels: string[]): "beginner" | "intermediate" | "advanced" {
+  const lower = labels.map((l) => l.toLowerCase());
+  if (lower.some((l) => l.includes("good first issue") || l.includes("easy") || l.includes("beginner"))) {
+    return "beginner";
+  }
+  if (lower.some((l) => l.includes("help wanted") || l.includes("medium") || l.includes("enhancement"))) {
+    return "intermediate";
+  }
+  return "advanced";
 }
 
-function calculateBadges(
-  repo: { topics: string; stars: number },
-  beginnerIssues: number,
-  activityLevel: ActivityLevel
-): Badge[] {
-  const badges: Badge[] = [];
-  const topics = JSON.parse(repo.topics || "[]");
+function matchLabels(labels: string[], interests: string[]): string[] {
+  const matched: string[] = [];
+  const lowerLabels = labels.map((l) => l.toLowerCase());
 
-  if (beginnerIssues >= 5) badges.push("Beginner Friendly");
-  if (activityLevel === "Very High" || activityLevel === "High") badges.push("High Activity");
-  if (repo.stars > 5000) badges.push("Great Documentation");
-  if (
-    topics.some(
-      (t: string) =>
-        t.includes("systems-programming") || t.includes("os") || t.includes("kernel")
-    )
-  ) {
-    badges.push("Systems Programming");
+  for (const interest of interests) {
+    const lowerInterest = interest.toLowerCase();
+    if (lowerLabels.some((l) => l.includes(lowerInterest))) {
+      matched.push(interest);
+    }
   }
-  return badges;
+
+  if (lowerLabels.some((l) => l.includes("good first issue"))) {
+    matched.push("Beginner Friendly");
+  }
+  if (lowerLabels.some((l) => l.includes("help wanted"))) {
+    matched.push("Help Wanted");
+  }
+  if (lowerLabels.some((l) => l.includes("bug"))) {
+    matched.push("Bug Fix");
+  }
+  if (lowerLabels.some((l) => l.includes("documentation") || l.includes("docs"))) {
+    matched.push("Documentation");
+  }
+
+  return [...new Set(matched)];
 }
 
 function generateWhyRecommended(
   languages: string[],
   interests: string[],
-  repo: { language: string | null; topics: string; stars: number; description: string | null },
-  beginnerIssues: number
+  repo: { language: string | null; topics: string; stars: number },
+  labels: string[],
+  difficulty: string
 ): string[] {
   const reasons: string[] = [];
   const topics = JSON.parse(repo.topics || "[]");
 
   if (repo.language && languages.some((l) => l.toLowerCase() === repo.language!.toLowerCase())) {
-    reasons.push(`Matches your selected language ${repo.language}.`);
+    reasons.push(`Uses ${repo.language}, which matches your selected language.`);
   }
-  if (
-    interests.some((i) => i.toLowerCase().includes("systems")) &&
-    topics.some((t: string) => t.includes("systems-programming") || t.includes("os"))
-  ) {
-    reasons.push("Matches your interest in systems programming.");
+
+  if (interests.some((i) => i.toLowerCase().includes("systems")) &&
+    topics.some((t: string) => t.includes("systems-programming") || t.includes("os"))) {
+    reasons.push("Project focuses on systems programming.");
   }
-  if (
-    interests.some((i) => i.toLowerCase().includes("web")) &&
-    topics.some((t: string) => t.includes("web") || t.includes("javascript"))
-  ) {
-    reasons.push("Matches your interest in web development.");
+
+  if (interests.some((i) => i.toLowerCase().includes("web")) &&
+    topics.some((t: string) => t.includes("web") || t.includes("javascript"))) {
+    reasons.push("Project is web-related.");
   }
-  if (
-    interests.some((i) => i.toLowerCase().includes("ai")) &&
-    topics.some((t: string) => t.includes("machine-learning") || t.includes("llm") || t.includes("ai"))
-  ) {
-    reasons.push("Matches your interest in AI/ML.");
+
+  if (interests.some((i) => i.toLowerCase().includes("ai")) &&
+    topics.some((t: string) => t.includes("machine-learning") || t.includes("llm") || t.includes("ai"))) {
+    reasons.push("Project is AI/ML related.");
   }
-  if (beginnerIssues > 0) {
-    reasons.push(`Has ${beginnerIssues} beginner-friendly issue${beginnerIssues > 1 ? "s" : ""}.`);
+
+  if (difficulty === "beginner") {
+    reasons.push("Marked as a good first issue — ideal for new contributors.");
+  } else if (difficulty === "intermediate") {
+    reasons.push("Open for community contributions.");
   }
+
+  if (labels.includes("documentation") || labels.includes("docs")) {
+    reasons.push("Documentation contribution — great way to learn the codebase.");
+  }
+
   if (repo.stars > 10000) {
     reasons.push(`Well-established project with ${repo.stars.toLocaleString()} stars.`);
   }
-  if (reasons.length === 0) {
-    reasons.push("Popular project with active maintenance.");
-  }
-  return reasons.slice(0, 3);
-}
 
-function timeAgo(date: Date | null): string {
-  if (!date) return "unknown";
-  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (seconds < 60) return "just now";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days === 1) return "1 day ago";
-  return `${days} days ago`;
+  if (reasons.length === 0) {
+    reasons.push("Active issue in a popular repository.");
+  }
+
+  return reasons.slice(0, 3);
 }
 
 export async function GET(request: NextRequest) {
@@ -111,41 +114,39 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  const repos = await getFreshRepos(languages);
+  const issues = await getIssuesWithRepo({ languages, interests });
 
-  const recommendations: Recommendation[] = repos.map((repo) => {
-    const beginnerIssue = repo.issues.find((i) => i.label === "good first issue");
-    const helpWantedIssue = repo.issues.find((i) => i.label === "help wanted");
-    const beginnerCount = beginnerIssue?.count ?? 0;
-    const helpWantedCount = helpWantedIssue?.count ?? 0;
+  const recommendations: Recommendation[] = issues.map((issue) => {
+    const labels = JSON.parse(issue.labels || "[]");
+    const repoTopics = JSON.parse(issue.repo.topics || "[]");
+    const difficulty = classifyDifficulty(labels);
+    const matchedLabels = matchLabels(labels, interests);
 
-    const activityLevel = calculateActivityLevel(repo.scrapedAt);
-    const badges = calculateBadges(
-      { topics: repo.topics, stars: repo.stars },
-      beginnerCount,
-      activityLevel
-    );
     const whyRecommended = generateWhyRecommended(
       languages,
       interests,
-      { language: repo.language, topics: repo.topics, stars: repo.stars, description: repo.description },
-      beginnerCount
+      { language: issue.repo.language, topics: issue.repo.topics, stars: issue.repo.stars },
+      labels,
+      difficulty
     );
 
     return {
-      id: String(repo.id),
-      repository: repo.name,
-      organization: repo.owner,
-      description: repo.description || "No description available.",
-      primaryLanguage: repo.language || "Unknown",
-      stars: repo.stars,
-      activityLevel,
-      openBeginnerIssues: beginnerCount,
-      openHelpWantedIssues: helpWantedCount,
-      lastUpdated: timeAgo(repo.pushedAt),
-      badges,
+      id: `${issue.repo.id}-${issue.number}`,
+      issueNumber: issue.number,
+      issueTitle: issue.title,
+      issueUrl: issue.url,
+      labels,
+      comments: issue.comments,
+      author: issue.author,
+      repository: issue.repo.name,
+      organization: issue.repo.owner,
+      repoDescription: issue.repo.description || "No description available.",
+      repoLanguage: issue.repo.language || "Unknown",
+      repoStars: issue.repo.stars,
+      repoTopics,
       whyRecommended,
-      url: `https://github.com/${repo.fullName}`,
+      difficulty,
+      matchedLabels,
     };
   });
 

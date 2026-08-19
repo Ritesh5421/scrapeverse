@@ -1,23 +1,14 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Slider } from "@/components/ui/slider";
 import { Separator } from "@/components/ui/separator";
-import type { Filters, ActivityLevel } from "@/lib/types";
+import type { Filters } from "@/lib/types";
 import { defaultFilters } from "@/lib/mock-data";
 
 interface FilterSidebarProps {
   filters: Filters;
   onChange: (filters: Filters) => void;
 }
-
-const activityLevels: (ActivityLevel | "any")[] = [
-  "any",
-  "Very High",
-  "High",
-  "Moderate",
-  "Low",
-];
 
 const difficultyLevels = [
   { value: "any", label: "Any" },
@@ -49,30 +40,7 @@ export function FilterSidebar({ filters, onChange }: FilterSidebarProps) {
     <div className="w-full lg:w-64 shrink-0 space-y-6">
       <div>
         <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
-          Minimum Stars
-        </h3>
-        <div className="space-y-2">
-          <Slider
-            value={[filters.minStars]}
-            onValueChange={(v) => {
-              const val = Array.isArray(v) ? v[0] : v;
-              update("minStars", (val ?? 0) as number);
-            }}
-            min={0}
-            max={100000}
-            step={100}
-          />
-          <p className="text-[11px] text-muted-foreground text-center">
-            {filters.minStars.toLocaleString()}+
-          </p>
-        </div>
-      </div>
-
-        <Separator className="bg-border/50" />
-
-      <div>
-        <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
-          Max Difficulty
+          Difficulty
         </h3>
         <div className="flex flex-wrap gap-1.5">
           {difficultyLevels.map((d) => (
@@ -113,30 +81,6 @@ export function FilterSidebar({ filters, onChange }: FilterSidebarProps) {
 
         <Separator className="bg-border/50" />
 
-      <div>
-        <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
-          Activity Level
-        </h3>
-        <div className="flex flex-wrap gap-1.5">
-          {activityLevels.map((level) => (
-            <button
-              key={level}
-              onClick={() => update("activityLevel", level)}
-              className={cn(
-                "px-3 py-1.5 rounded-md border text-[11px] font-medium transition-all cursor-pointer",
-                filters.activityLevel === level
-                  ? "border-foreground bg-foreground text-background"
-                  : "border-border bg-card text-muted-foreground hover:text-foreground hover:border-muted-foreground/50"
-              )}
-            >
-              {level === "any" ? "Any" : level}
-            </button>
-          ))}
-        </div>
-      </div>
-
-        <Separator className="bg-border/50" />
-
       <div className="space-y-3">
         <label className="flex items-center gap-2.5 cursor-pointer">
           <input
@@ -146,15 +90,6 @@ export function FilterSidebar({ filters, onChange }: FilterSidebarProps) {
             className="w-3.5 h-3.5 rounded border-border accent-foreground cursor-pointer"
           />
           <span className="text-xs text-muted-foreground">Beginner friendly only</span>
-        </label>
-        <label className="flex items-center gap-2.5 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={filters.systemsProjectsOnly}
-            onChange={(e) => update("systemsProjectsOnly", e.target.checked)}
-            className="w-3.5 h-3.5 rounded border-border accent-foreground cursor-pointer"
-          />
-          <span className="text-xs text-muted-foreground">Systems projects only</span>
         </label>
       </div>
 

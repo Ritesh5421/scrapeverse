@@ -53,9 +53,14 @@ model ScrapedIssue {
   id              Int      @id @default(autoincrement())
   repoId          Int
   repo            ScrapedRepo @relation(fields: [repoId], references: [id], onDelete: Cascade)
-  label           String
-  count           Int      @default(0)
+  number          Int
+  title           String
+  url             String
+  labels          String   @default("[]")
+  comments        Int      @default(0)
+  author          String?
+  createdAt       DateTime?
   scrapedAt       DateTime @default(now())
 
-  @@unique([repoId, label])
+  @@unique([repoId, number])
 }

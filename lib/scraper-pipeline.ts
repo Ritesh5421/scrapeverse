@@ -3,8 +3,10 @@ import {
   discoverTrendingRepos,
   scrapeRepo,
   scrapeRepos,
+  fetchIssues,
   closeClient,
   type RepoData,
+  type IssueData,
 } from "./brightdata";
 
 const SCRAPE_STALENESS_MS = 6 * 60 * 60 * 1000;
@@ -12,11 +14,13 @@ const SCRAPE_STALENESS_MS = 6 * 60 * 60 * 1000;
 export async function runScrapePipeline(): Promise<{
   discovered: number;
   scraped: number;
+  issuesScraped: number;
   errors: string[];
 }> {
   const errors: string[] = [];
   let discovered = 0;
   let scraped = 0;
+  let issuesScraped = 0;
 
   try {
     const urls = await discoverTrendingRepos();
@@ -24,15 +28,21 @@ export async function runScrapePipeline(): Promise<{
 
     if (urls.length === 0) {
       errors.push("No trending repos discovered");
-      return { discovered: 0, scraped: 0, errors };
+      return { discovered: 0, scraped: 0, issuesScraped: 0, errors };
     }
 
     const repoDataList = await scrapeRepos(urls);
 
     for (const repoData of repoDataList) {
       try {
-        await upsertRepo(repoData);
+        const repoId = await upsertRepo(repoData);
         scraped++;
+
+        const issues = await fetchIssues(repoData.owner, repoData.repository_name);
+        for (const issue of issues) {
+          await upsertIssue(repoId, issue);
+          issuesScraped++;
+        }
       } catch (err) {
         errors.push(`Failed to store ${repoData.owner}/${repoData.repository_name}: ${err}`);
       }
@@ -43,7 +53,7 @@ export async function runScrapePipeline(): Promise<{
     await closeClient();
   }
 
-  return { discovered, scraped, errors };
+  return { discovered, scraped, issuesScraped, errors };
 }
 
 export async function runScrapeForRepo(fullName: string): Promise<boolean> {
@@ -51,7 +61,12 @@ export async function runScrapeForRepo(fullName: string): Promise<boolean> {
     const url = `https://github.com/${fullName}`;
     const repoData = await scrapeRepo(url);
     if (!repoData) return false;
-    await upsertRepo(repoData);
+
+    const repoId = await upsertRepo(repoData);
+    const issues = await fetchIssues(repoData.owner, repoData.repository_name);
+    for (const issue of issues) {
+      await upsertIssue(repoId, issue);
+    }
     return true;
   } catch (err) {
     console.error(`Failed to scrape ${fullName}:`, err);
@@ -61,7 +76,7 @@ export async function runScrapeForRepo(fullName: string): Promise<boolean> {
   }
 }
 
-async function upsertRepo(data: RepoData): Promise<void> {
+async function upsertRepo(data: RepoData): Promise<number> {
   const githubId = hashFullName(data.owner, data.repository_name);
 
   await db.scrapedRepo.upsert({
@@ -90,6 +105,30 @@ async function upsertRepo(data: RepoData): Promise<void> {
       updatedAt: new Date(),
     },
   });
+
+  return githubId;
+}
+
+async function upsertIssue(repoId: number, data: IssueData): Promise<void> {
+  await db.scrapedIssue.upsert({
+    where: { repoId_number: { repoId, number: data.number } },
+    create: {
+      repoId,
+      number: data.number,
+      title: data.title,
+      url: data.url,
+      labels: JSON.stringify(data.labels),
+      comments: data.comments,
+      author: data.author,
+      createdAt: new Date(data.createdAt),
+    },
+    update: {
+      title: data.title,
+      labels: JSON.stringify(data.labels),
+      comments: data.comments,
+      scrapedAt: new Date(),
+    },
+  });
 }
 
 function hashFullName(owner: string, name: string): number {
@@ -102,35 +141,51 @@ function hashFullName(owner: string, name: string): number {
   return Math.abs(hash);
 }
 
-export async function getFreshRepos(languages: string[]): Promise<
+export async function getIssuesWithRepo(filters: {
+  languages: string[];
+  interests: string[];
+}): Promise<
   {
     id: number;
-    fullName: string;
-    owner: string;
-    name: string;
-    description: string | null;
-    language: string | null;
-    stars: number;
-    forks: number;
-    topics: string;
-    license: string | null;
-    pushedAt: Date | null;
-    scrapedAt: Date;
-    issues: { label: string; count: number }[];
+    number: number;
+    title: string;
+    url: string;
+    labels: string;
+    comments: number;
+    author: string | null;
+    createdAt: Date | null;
+    repo: {
+      id: number;
+      fullName: string;
+      owner: string;
+      name: string;
+      description: string | null;
+      language: string | null;
+      stars: number;
+      topics: string;
+      license: string | null;
+    };
   }[]
 > {
-  const repos = await db.scrapedRepo.findMany({
-    where: {
+  const where: Record<string, unknown> = {};
+
+  if (filters.languages.length > 0) {
+    where.repo = {
       OR: [
-        { language: { in: languages, mode: "insensitive" } },
-        { topics: { contains: languages[0] || "", mode: "insensitive" } },
+        { language: { in: filters.languages, mode: "insensitive" } },
+        { topics: { hasSome: filters.languages } },
       ],
-    },
-    orderBy: { stars: "desc" },
-    include: { issues: true },
+    };
+  }
+
+  const issues = await db.scrapedIssue.findMany({
+    where,
+    include: { repo: true },
+    orderBy: { createdAt: "desc" },
+    take: 100,
   });
 
-  return repos;
+  return issues;
 }
 
 export async function isDataStale(): Promise<boolean> {

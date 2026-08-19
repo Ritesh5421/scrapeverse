@@ -70,17 +70,21 @@ export type Badge =
 
 export interface Recommendation {
   id: string;
+  issueNumber: number;
+  issueTitle: string;
+  issueUrl: string;
+  labels: string[];
+  comments: number;
+  author: string | null;
   repository: string;
   organization: string;
-  description: string;
-  primaryLanguage: string;
-  stars: number;
-  activityLevel: ActivityLevel;
-  openBeginnerIssues: number;
-  openHelpWantedIssues: number;
-  lastUpdated: string;
-  badges: Badge[];
+  repoDescription: string;
+  repoLanguage: string;
+  repoStars: number;
+  repoTopics: string[];
   whyRecommended: string[];
+  difficulty: "beginner" | "intermediate" | "advanced";
+  matchedLabels: string[];
 }
 
 export interface OnboardingPreferences {
@@ -93,12 +97,9 @@ export interface OnboardingPreferences {
 }
 
 export interface Filters {
-  minStars: number;
   maxDifficulty: "beginner" | "intermediate" | "advanced" | "any";
   language: string;
-  activityLevel: ActivityLevel | "any";
   beginnerFriendlyOnly: boolean;
-  systemsProjectsOnly: boolean;
 }
 
 export interface InterestOption {
