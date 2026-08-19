@@ -29,3 +29,33 @@ model UserPreferences {
   timeCommitment  String?
   updatedAt       DateTime @updatedAt
 }
+
+model ScrapedRepo {
+  id              Int      @id
+  fullName        String   @unique
+  owner           String
+  name            String
+  description     String?
+  language        String?
+  stars           Int      @default(0)
+  forks           Int      @default(0)
+  topics          String   @default("[]")
+  license         String?
+  defaultBranch   String?
+  pushedAt        DateTime?
+  scrapedAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  issues          ScrapedIssue[]
+}
+
+model ScrapedIssue {
+  id              Int      @id @default(autoincrement())
+  repoId          Int
+  repo            ScrapedRepo @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  label           String
+  count           Int      @default(0)
+  scrapedAt       DateTime @default(now())
+
+  @@unique([repoId, label])
+}

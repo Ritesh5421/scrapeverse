@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
+    "@brightdata/sdk": "^1.2.0",
     "@hugeicons/core-free-icons": "^4.2.3",
     "@hugeicons/react": "^1.1.9",
     "@prisma/adapter-pg": "^7.9.1",
