@@ -21,7 +21,17 @@ const labelColorMap: Record<string, string> = {
   Documentation: "bg-purple-500/10 text-purple-400 border-purple-500/20",
 };
 
+const setupComplexityMap: Record<string, { label: string; color: string }> = {
+  simple: { label: "Simple Setup", color: "text-emerald-400" },
+  moderate: { label: "Moderate Setup", color: "text-amber-400" },
+  complex: { label: "Complex Setup", color: "text-red-400" },
+  unknown: { label: "Setup Unknown", color: "text-muted-foreground" },
+};
+
 export function RecommendationCard({ recommendation }: RecommendationCardProps) {
+  const { readme } = recommendation;
+  const setupInfo = readme ? setupComplexityMap[readme.setupComplexity] : null;
+
   return (
     <Card className="p-0 overflow-hidden border-border/50 hover:border-border transition-all duration-300 group">
       <div className="p-5">
@@ -74,20 +84,55 @@ export function RecommendationCard({ recommendation }: RecommendationCardProps) 
       </div>
 
       <div className="border-t border-border/50 px-5 py-3 bg-muted/30">
-        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
-          Why this issue
+        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">
+          Why this project
         </p>
-        <ul className="space-y-1">
+
+        <div className="space-y-1.5 mb-3">
           {recommendation.whyRecommended.map((reason, i) => (
-            <li
+            <div
               key={i}
               className="text-[11px] text-muted-foreground flex items-start gap-1.5"
             >
-              <span className="text-foreground/60 mt-0.5 shrink-0">→</span>
+              <span className="text-emerald-400 mt-0.5 shrink-0">✓</span>
               {reason}
-            </li>
+            </div>
           ))}
-        </ul>
+        </div>
+
+        {readme && (
+          <div className="pt-2 border-t border-border/30 space-y-1.5">
+            {readme.hasContributionGuide && (
+              <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                <span className="text-emerald-400">✓</span>
+                Has contribution guide
+              </div>
+            )}
+            {setupInfo && (
+              <div className="text-[11px] flex items-center gap-1.5">
+                <span className={setupInfo.color}>✓</span>
+                <span className="text-muted-foreground">{setupInfo.label}</span>
+              </div>
+            )}
+            {readme.techStack.length > 0 && (
+              <div className="text-[11px] text-muted-foreground flex items-start gap-1.5">
+                <span className="text-blue-400 mt-0.5 shrink-0">✓</span>
+                <span>
+                  Tech: {readme.techStack.slice(0, 5).join(", ")}
+                  {readme.techStack.length > 5 && ` +${readme.techStack.length - 5} more`}
+                </span>
+              </div>
+            )}
+            {readme.architectureKeywords.length > 0 && (
+              <div className="text-[11px] text-muted-foreground flex items-start gap-1.5">
+                <span className="text-purple-400 mt-0.5 shrink-0">✓</span>
+                <span>
+                  Architecture: {readme.architectureKeywords.slice(0, 3).join(", ")}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </Card>
   );

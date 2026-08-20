@@ -47,6 +47,7 @@ model ScrapedRepo {
   updatedAt       DateTime @updatedAt
 
   issues          ScrapedIssue[]
+  readme          ScrapedReadme?
 }
 
 model ScrapedIssue {
@@ -63,4 +64,16 @@ model ScrapedIssue {
   scrapedAt       DateTime @default(now())
 
   @@unique([repoId, number])
+}
+
+model ScrapedReadme {
+  id              Int      @id @default(autoincrement())
+  repoId          Int      @unique
+  repo            ScrapedRepo @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  rawContent      String
+  hasContributionGuide Boolean @default(false)
+  setupComplexity String   @default("unknown")
+  techStack       String   @default("[]")
+  architectureKeywords String @default("[]")
+  scrapedAt       DateTime @default(now())
 }

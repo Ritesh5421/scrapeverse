@@ -68,6 +68,13 @@ export type Badge =
   | "Systems Programming"
   | "Fast Maintainer Response";
 
+export interface ReadmeIntelligence {
+  hasContributionGuide: boolean;
+  setupComplexity: "simple" | "moderate" | "complex" | "unknown";
+  techStack: string[];
+  architectureKeywords: string[];
+}
+
 export interface Recommendation {
   id: string;
   issueNumber: number;
@@ -85,6 +92,7 @@ export interface Recommendation {
   whyRecommended: string[];
   difficulty: "beginner" | "intermediate" | "advanced";
   matchedLabels: string[];
+  readme: ReadmeIntelligence | null;
 }
 
 export interface OnboardingPreferences {

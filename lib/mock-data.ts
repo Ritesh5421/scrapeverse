@@ -143,6 +143,12 @@ export const mockRecommendations: Recommendation[] = [
     ],
     difficulty: "beginner",
     matchedLabels: ["Rust", "Beginner Friendly", "Bug Fix"],
+    readme: {
+      hasContributionGuide: true,
+      setupComplexity: "moderate",
+      techStack: ["rust", "compiler"],
+      architectureKeywords: ["layered-architecture"],
+    },
   },
   {
     id: "2-500",
@@ -165,6 +171,12 @@ export const mockRecommendations: Recommendation[] = [
     ],
     difficulty: "intermediate",
     matchedLabels: ["Rust", "Help Wanted"],
+    readme: {
+      hasContributionGuide: true,
+      setupComplexity: "simple",
+      techStack: ["rust", "async", "tokio"],
+      architectureKeywords: ["async", "non-blocking"],
+    },
   },
   {
     id: "3-1200",
@@ -187,6 +199,12 @@ export const mockRecommendations: Recommendation[] = [
     ],
     difficulty: "beginner",
     matchedLabels: ["Beginner Friendly", "Documentation"],
+    readme: {
+      hasContributionGuide: true,
+      setupComplexity: "complex",
+      techStack: ["c", "lua"],
+      architectureKeywords: ["plugin-system", "event-driven"],
+    },
   },
   {
     id: "4-800",
@@ -209,6 +227,12 @@ export const mockRecommendations: Recommendation[] = [
     ],
     difficulty: "advanced",
     matchedLabels: [],
+    readme: {
+      hasContributionGuide: true,
+      setupComplexity: "moderate",
+      techStack: ["zig", "compiler"],
+      architectureKeywords: ["pipeline"],
+    },
   },
   {
     id: "5-3000",
@@ -231,6 +255,12 @@ export const mockRecommendations: Recommendation[] = [
     ],
     difficulty: "beginner",
     matchedLabels: ["Rust", "Beginner Friendly", "Help Wanted"],
+    readme: {
+      hasContributionGuide: true,
+      setupComplexity: "moderate",
+      techStack: ["rust", "javascript", "typescript"],
+      architectureKeywords: ["plugin-system", "async"],
+    },
   },
 ];
 

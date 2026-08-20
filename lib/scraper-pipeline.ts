@@ -8,6 +8,7 @@ import {
   type RepoData,
   type IssueData,
 } from "./brightdata";
+import { fetchAndAnalyzeReadme } from "./readme-analyzer";
 
 const SCRAPE_STALENESS_MS = 6 * 60 * 60 * 1000;
 
@@ -15,12 +16,14 @@ export async function runScrapePipeline(): Promise<{
   discovered: number;
   scraped: number;
   issuesScraped: number;
+  readmesScraped: number;
   errors: string[];
 }> {
   const errors: string[] = [];
   let discovered = 0;
   let scraped = 0;
   let issuesScraped = 0;
+  let readmesScraped = 0;
 
   try {
     const urls = await discoverTrendingRepos();
@@ -28,7 +31,7 @@ export async function runScrapePipeline(): Promise<{
 
     if (urls.length === 0) {
       errors.push("No trending repos discovered");
-      return { discovered: 0, scraped: 0, issuesScraped: 0, errors };
+      return { discovered: 0, scraped: 0, issuesScraped: 0, readmesScraped: 0, errors };
     }
 
     const repoDataList = await scrapeRepos(urls);
@@ -43,6 +46,12 @@ export async function runScrapePipeline(): Promise<{
           await upsertIssue(repoId, issue);
           issuesScraped++;
         }
+
+        const readme = await fetchAndAnalyzeReadme(repoData.owner, repoData.repository_name);
+        if (readme) {
+          await upsertReadme(repoId, readme);
+          readmesScraped++;
+        }
       } catch (err) {
         errors.push(`Failed to store ${repoData.owner}/${repoData.repository_name}: ${err}`);
       }
@@ -53,7 +62,7 @@ export async function runScrapePipeline(): Promise<{
     await closeClient();
   }
 
-  return { discovered, scraped, issuesScraped, errors };
+  return { discovered, scraped, issuesScraped, readmesScraped, errors };
 }
 
 export async function runScrapeForRepo(fullName: string): Promise<boolean> {
@@ -67,6 +76,12 @@ export async function runScrapeForRepo(fullName: string): Promise<boolean> {
     for (const issue of issues) {
       await upsertIssue(repoId, issue);
     }
+
+    const readme = await fetchAndAnalyzeReadme(repoData.owner, repoData.repository_name);
+    if (readme) {
+      await upsertReadme(repoId, readme);
+    }
+
     return true;
   } catch (err) {
     console.error(`Failed to scrape ${fullName}:`, err);
@@ -131,6 +146,31 @@ async function upsertIssue(repoId: number, data: IssueData): Promise<void> {
   });
 }
 
+async function upsertReadme(
+  repoId: number,
+  data: { rawContent: string; hasContributionGuide: boolean; setupComplexity: string; techStack: string[]; architectureKeywords: string[] }
+): Promise<void> {
+  await db.scrapedReadme.upsert({
+    where: { repoId },
+    create: {
+      repoId,
+      rawContent: data.rawContent.slice(0, 50000),
+      hasContributionGuide: data.hasContributionGuide,
+      setupComplexity: data.setupComplexity,
+      techStack: JSON.stringify(data.techStack),
+      architectureKeywords: JSON.stringify(data.architectureKeywords),
+    },
+    update: {
+      rawContent: data.rawContent.slice(0, 50000),
+      hasContributionGuide: data.hasContributionGuide,
+      setupComplexity: data.setupComplexity,
+      techStack: JSON.stringify(data.techStack),
+      architectureKeywords: JSON.stringify(data.architectureKeywords),
+      scrapedAt: new Date(),
+    },
+  });
+}
+
 function hashFullName(owner: string, name: string): number {
   const str = `${owner}/${name}`;
   let hash = 0;
@@ -164,6 +204,12 @@ export async function getIssuesWithRepo(filters: {
       stars: number;
       topics: string;
       license: string | null;
+      readme: {
+        hasContributionGuide: boolean;
+        setupComplexity: string;
+        techStack: string;
+        architectureKeywords: string;
+      } | null;
     };
   }[]
 > {
@@ -180,7 +226,11 @@ export async function getIssuesWithRepo(filters: {
 
   const issues = await db.scrapedIssue.findMany({
     where,
-    include: { repo: true },
+    include: {
+      repo: {
+        include: { readme: true },
+      },
+    },
     orderBy: { createdAt: "desc" },
     take: 100,
   });

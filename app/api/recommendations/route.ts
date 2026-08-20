@@ -130,6 +130,15 @@ export async function GET(request: NextRequest) {
       difficulty
     );
 
+    const readme = issue.repo.readme
+      ? {
+          hasContributionGuide: issue.repo.readme.hasContributionGuide,
+          setupComplexity: issue.repo.readme.setupComplexity as "simple" | "moderate" | "complex" | "unknown",
+          techStack: JSON.parse(issue.repo.readme.techStack || "[]"),
+          architectureKeywords: JSON.parse(issue.repo.readme.architectureKeywords || "[]"),
+        }
+      : null;
+
     return {
       id: `${issue.repo.id}-${issue.number}`,
       issueNumber: issue.number,
@@ -147,6 +156,7 @@ export async function GET(request: NextRequest) {
       whyRecommended,
       difficulty,
       matchedLabels,
+      readme,
     };
   });
 
