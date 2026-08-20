@@ -1,14 +1,20 @@
 import { bdclient } from "@brightdata/sdk";
 
 const TRENDING_SCRAPER_ID = "c_mszmts63lwxh4wh0h";
-const REPO_SCRAPER_ID = "c_mszma8ux1xoygpchmn";
 
-const client = new bdclient({
-  apiKey: process.env.BRIGHTDATA_API_KEY!,
-  logLevel: "WARNING",
-  structuredLogging: false,
-  verbose: false,
-});
+let client: InstanceType<typeof bdclient> | null = null;
+
+function getClient() {
+  if (!client) {
+    client = new bdclient({
+      apiKey: process.env.BRIGHTDATA_API_KEY!,
+      logLevel: "WARNING",
+      structuredLogging: false,
+      verbose: false,
+    });
+  }
+  return client;
+}
 
 export interface TrendingEntry {
   product_page_url: string;
@@ -37,7 +43,7 @@ export interface IssueData {
 
 export async function discoverTrendingRepos(): Promise<string[]> {
   try {
-    const results = await client.scraperStudio.run(TRENDING_SCRAPER_ID, {
+    const results = await getClient().scraperStudio.run(TRENDING_SCRAPER_ID, {
       input: { url: "https://github.com/trending" },
     });
     const urls: string[] = [];
@@ -58,35 +64,52 @@ export async function discoverTrendingRepos(): Promise<string[]> {
   }
 }
 
-export async function scrapeRepo(url: string): Promise<RepoData | null> {
+export async function fetchRepoDetails(owner: string, repo: string): Promise<RepoData | null> {
   try {
-    const results = await client.scraperStudio.run(REPO_SCRAPER_ID, {
-      input: { url },
+    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
+      headers: {
+        Accept: "application/vnd.github.v3+json",
+        "User-Agent": "scrapeverse/0.1.0",
+      },
     });
-    const first = results[0];
-    if (!first || first.error || !first.data?.[0]) {
-      return null;
-    }
-    return first.data[0] as RepoData;
+
+    if (!res.ok) return null;
+
+    const data = await res.json();
+
+    return {
+      repository_name: data.name,
+      owner: data.owner.login,
+      description: data.description || "",
+      star_count: data.stargazers_count,
+      fork_count: data.forks_count,
+      topics: data.topics || [],
+      license: data.license?.spdx_id || "",
+      default_branch: data.default_branch || "main",
+    };
   } catch (err) {
-    console.error(`Failed to scrape repo ${url}:`, err);
+    console.error(`Failed to fetch repo details for ${owner}/${repo}:`, err);
     return null;
   }
 }
 
-export async function scrapeRepos(urls: string[]): Promise<RepoData[]> {
-  try {
-    const inputs = urls.map((url) => ({ url }));
-    const results = await client.scraperStudio.run(REPO_SCRAPER_ID, {
-      input: inputs,
-    });
-    return results
-      .filter((r) => !r.error && r.data?.[0])
-      .map((r) => r.data![0] as RepoData);
-  } catch (err) {
-    console.error("Failed to batch scrape repos:", err);
-    return [];
+export async function fetchRepoDetailsBatch(
+  urls: string[]
+): Promise<RepoData[]> {
+  const results: RepoData[] = [];
+
+  for (const url of urls) {
+    const match = url.match(/github\.com\/([^/]+)\/([^/]+)/);
+    if (!match) continue;
+
+    const [, owner, repo] = match;
+    const details = await fetchRepoDetails(owner, repo);
+    if (details) {
+      results.push(details);
+    }
   }
+
+  return results;
 }
 
 export async function fetchIssues(
@@ -139,5 +162,8 @@ export async function fetchIssues(
 }
 
 export async function closeClient(): Promise<void> {
-  await client.close();
+  if (client) {
+    await client.close();
+    client = null;
+  }
 }

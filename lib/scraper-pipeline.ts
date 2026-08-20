@@ -1,8 +1,8 @@
 import { db } from "./db";
 import {
   discoverTrendingRepos,
-  scrapeRepo,
-  scrapeRepos,
+  fetchRepoDetails,
+  fetchRepoDetailsBatch,
   fetchIssues,
   closeClient,
   type RepoData,
@@ -34,7 +34,7 @@ export async function runScrapePipeline(): Promise<{
       return { discovered: 0, scraped: 0, issuesScraped: 0, readmesScraped: 0, errors };
     }
 
-    const repoDataList = await scrapeRepos(urls);
+    const repoDataList = await fetchRepoDetailsBatch(urls);
 
     for (const repoData of repoDataList) {
       try {
@@ -67,8 +67,11 @@ export async function runScrapePipeline(): Promise<{
 
 export async function runScrapeForRepo(fullName: string): Promise<boolean> {
   try {
-    const url = `https://github.com/${fullName}`;
-    const repoData = await scrapeRepo(url);
+    const match = fullName.match(/^([^/]+)\/([^/]+)$/);
+    if (!match) return false;
+
+    const [, owner, repo] = match;
+    const repoData = await fetchRepoDetails(owner, repo);
     if (!repoData) return false;
 
     const repoId = await upsertRepo(repoData);
