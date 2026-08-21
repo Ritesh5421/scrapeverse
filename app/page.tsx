@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useCallback, useMemo, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Hero } from "@/components/landing/hero";
 import { OnboardingFlow } from "@/components/onboarding/onboarding-flow";
 import { AuthModal } from "@/components/auth/auth-modal";
@@ -16,11 +16,13 @@ import type {
   OnboardingPreferences,
 } from "@/lib/types";
 
-export default function Home() {
+function HomeInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const restart = searchParams.get("restart") === "true";
   const { user, isLoading, updatePreferences } = useAuth();
   const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(restart);
   const [step, setStep] = useState<OnboardingStep>(1);
 
   const [interests, setInterests] = useState<Interest[]>([]);
@@ -159,5 +161,13 @@ export default function Home() {
         onSuccess={handleAuthSuccess}
       />
     </>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense>
+      <HomeInner />
+    </Suspense>
   );
 }

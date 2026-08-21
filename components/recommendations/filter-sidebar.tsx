@@ -2,6 +2,13 @@
 
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { Filters } from "@/lib/types";
 import { defaultFilters, languageOptions } from "@/lib/mock-data";
 
@@ -48,26 +55,30 @@ export function FilterSidebar({ filters, onChange }: FilterSidebarProps) {
         </div>
       </div>
 
-        <Separator className="bg-border/50" />
+      <Separator className="bg-border/50" />
 
       <div>
         <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
           Language
         </h3>
-        <select
+        <Select
           value={filters.language}
-          onChange={(e) => update("language", e.target.value)}
-          className="w-full h-8 rounded-md border border-input bg-input/20 px-2 text-xs text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30 cursor-pointer"
+          onValueChange={(value) => update("language", value ?? "any")}
         >
-          {languages.map((l) => (
-            <option key={l} value={l}>
-              {l === "any" ? "Any Language" : l}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger className="w-full h-8 text-xs">
+            <SelectValue placeholder="Any Language" />
+          </SelectTrigger>
+          <SelectContent>
+            {languages.map((l) => (
+              <SelectItem key={l} value={l} className="text-xs">
+                {l === "any" ? "Any Language" : l}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-        <Separator className="bg-border/50" />
+      <Separator className="bg-border/50" />
 
       <button
         onClick={() => onChange(defaultFilters)}

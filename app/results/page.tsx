@@ -30,9 +30,6 @@ export default function Results() {
       languages: allLanguages.join(","),
       interests: user.preferences!.interests.join(","),
     });
-    if (user.preferences!.experienceLevel) {
-      params.set("experience", user.preferences!.experienceLevel);
-    }
 
     fetch(`/api/recommendations?${params}`)
       .then((res) => (res.ok ? res.json() : null))
@@ -71,7 +68,7 @@ export default function Results() {
   return (
     <ResultsPage
       recommendations={recommendations}
-      onRestart={() => router.push("/")}
+      onRestart={() => router.push("/?restart=true")}
       onOpenPreferences={() => router.push("/preferences")}
       initialDifficulty={initialDifficulty}
       dataSource={dataSource}
