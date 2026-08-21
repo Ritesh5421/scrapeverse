@@ -11,15 +11,20 @@ export default function Results() {
   const router = useRouter();
   const { user, isLoading } = useAuth();
   const [recommendations, setRecommendations] = useState<Recommendation[]>(mockRecommendations);
+  const [dataSource, setDataSource] = useState<"live" | "mock">("mock");
   const fetchedRef = useRef(false);
+
+  const hasLanguages = user?.preferences
+    ? [...user.preferences.languages, ...user.preferences.customLanguages].length > 0
+    : false;
 
   useEffect(() => {
     if (isLoading || !user) return;
     if (fetchedRef.current) return;
+    if (!hasLanguages) return;
     fetchedRef.current = true;
 
     const allLanguages = [...user.preferences!.languages, ...user.preferences!.customLanguages];
-    if (allLanguages.length === 0) return;
 
     const params = new URLSearchParams({
       languages: allLanguages.join(","),
@@ -34,10 +39,11 @@ export default function Results() {
       .then((data) => {
         if (data?.recommendations?.length > 0) {
           setRecommendations(data.recommendations);
+          setDataSource(data.dataSource ?? "mock");
         }
       })
       .catch(() => {});
-  }, [user, isLoading]);
+  }, [user, isLoading, hasLanguages]);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -68,6 +74,7 @@ export default function Results() {
       onRestart={() => router.push("/")}
       onOpenPreferences={() => router.push("/preferences")}
       initialDifficulty={initialDifficulty}
+      dataSource={dataSource}
     />
   );
 }

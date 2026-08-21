@@ -150,10 +150,14 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  let dataSource: "live" | "mock" = "mock";
+  let trendingRepos: string[] = [];
+
   const stale = await isDataStale();
   if (stale) {
     try {
-      await runScrapePipeline();
+      const result = await runScrapePipeline();
+      trendingRepos = result.trendingRepos;
     } catch (err) {
       console.error("Auto-scrape failed:", err);
     }
@@ -161,11 +165,17 @@ export async function GET(request: NextRequest) {
 
   const issues = await getIssuesWithRepo({ languages, interests });
 
+  if (issues.length > 0) {
+    dataSource = "live";
+  }
+
   const recommendations: Recommendation[] = issues.map((issue) => {
     const labels = JSON.parse(issue.labels || "[]");
     const repoTopics = JSON.parse(issue.repo.topics || "[]");
     const difficulty = classifyDifficulty(labels);
     const matchedLabels = matchLabels(labels, interests);
+    const fullName = `${issue.repo.owner}/${issue.repo.name}`;
+    const isTrending = trendingRepos.includes(fullName);
 
     const whyRecommended = generateWhyRecommended(
       languages,
@@ -190,7 +200,7 @@ export async function GET(request: NextRequest) {
       { language: issue.repo.language, topics: issue.repo.topics, stars: issue.repo.stars },
       labels,
       readme,
-      true
+      isTrending
     );
 
     return {
@@ -224,5 +234,5 @@ export async function GET(request: NextRequest) {
 
   filtered.sort((a, b) => b.matchScore.total - a.matchScore.total);
 
-  return NextResponse.json({ recommendations: filtered, count: filtered.length });
+  return NextResponse.json({ recommendations: filtered, count: filtered.length, dataSource });
 }

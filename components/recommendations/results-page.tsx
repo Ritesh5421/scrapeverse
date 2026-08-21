@@ -14,6 +14,7 @@ interface ResultsPageProps {
   onRestart: () => void;
   onOpenPreferences: () => void;
   initialDifficulty?: Filters["maxDifficulty"];
+  dataSource?: "live" | "mock";
 }
 
 export function ResultsPage({
@@ -21,6 +22,7 @@ export function ResultsPage({
   onRestart,
   onOpenPreferences,
   initialDifficulty = "any",
+  dataSource = "mock",
 }: ResultsPageProps) {
   const [filters, setFilters] = useState<Filters>({
     ...defaultFilters,
@@ -59,6 +61,16 @@ export function ResultsPage({
             <p className="text-xs text-muted-foreground">
               {filtered.length}{" "}
               {filtered.length === 1 ? "issue" : "issues"} found
+              <span className="mx-1.5">·</span>
+              <span
+                className={
+                  dataSource === "live"
+                    ? "text-emerald-400"
+                    : "text-amber-400"
+                }
+              >
+                {dataSource === "live" ? "Live data" : "Demo data"}
+              </span>
             </p>
           </div>
           <div className="flex items-center gap-2">

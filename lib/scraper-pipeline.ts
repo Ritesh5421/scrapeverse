@@ -17,6 +17,7 @@ export async function runScrapePipeline(): Promise<{
   scraped: number;
   issuesScraped: number;
   readmesScraped: number;
+  trendingRepos: string[];
   errors: string[];
 }> {
   const errors: string[] = [];
@@ -24,6 +25,7 @@ export async function runScrapePipeline(): Promise<{
   let scraped = 0;
   let issuesScraped = 0;
   let readmesScraped = 0;
+  const trendingRepos: string[] = [];
 
   try {
     const urls = await discoverTrendingRepos();
@@ -31,7 +33,7 @@ export async function runScrapePipeline(): Promise<{
 
     if (urls.length === 0) {
       errors.push("No trending repos discovered");
-      return { discovered: 0, scraped: 0, issuesScraped: 0, readmesScraped: 0, errors };
+      return { discovered: 0, scraped: 0, issuesScraped: 0, readmesScraped: 0, trendingRepos: [], errors };
     }
 
     const repoDataList = await fetchRepoDetailsBatch(urls);
@@ -40,6 +42,7 @@ export async function runScrapePipeline(): Promise<{
       try {
         const repoId = await upsertRepo(repoData);
         scraped++;
+        trendingRepos.push(`${repoData.owner}/${repoData.repository_name}`);
 
         const issues = await fetchIssues(repoData.owner, repoData.repository_name);
         for (const issue of issues) {
@@ -62,7 +65,7 @@ export async function runScrapePipeline(): Promise<{
     await closeClient();
   }
 
-  return { discovered, scraped, issuesScraped, readmesScraped, errors };
+  return { discovered, scraped, issuesScraped, readmesScraped, trendingRepos, errors };
 }
 
 export async function runScrapeForRepo(fullName: string): Promise<boolean> {
