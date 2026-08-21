@@ -1,3 +1,5 @@
+import { githubFetch } from "./github-api";
+
 export interface ReadmeIntelligence {
   rawContent: string;
   hasContributionGuide: boolean;
@@ -66,23 +68,9 @@ const ARCHITECTURE_KEYWORDS = [
 ];
 
 export async function fetchReadme(owner: string, repo: string): Promise<string | null> {
-  try {
-    const res = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}/readme`,
-      {
-        headers: {
-          Accept: "application/vnd.github.v3.raw",
-          "User-Agent": "scrapeverse/0.1.0",
-        },
-      }
-    );
-
-    if (!res.ok) return null;
-    return await res.text();
-  } catch (err) {
-    console.error(`Failed to fetch README for ${owner}/${repo}:`, err);
-    return null;
-  }
+  const res = await githubFetch(`/repos/${owner}/${repo}/readme`, { raw: true });
+  if (!res || !res.ok) return null;
+  return await res.text();
 }
 
 export function analyzeReadme(content: string): Omit<ReadmeIntelligence, "rawContent"> {

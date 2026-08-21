@@ -1,4 +1,5 @@
 import { bdclient } from "@brightdata/sdk";
+import { githubFetch } from "./github-api";
 
 const TRENDING_SCRAPER_ID = "c_mszmts63lwxh4wh0h";
 
@@ -65,37 +66,24 @@ export async function discoverTrendingRepos(): Promise<string[]> {
 }
 
 export async function fetchRepoDetails(owner: string, repo: string): Promise<RepoData | null> {
-  try {
-    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
-      headers: {
-        Accept: "application/vnd.github.v3+json",
-        "User-Agent": "scrapeverse/0.1.0",
-      },
-    });
+  const res = await githubFetch(`/repos/${owner}/${repo}`);
+  if (!res || !res.ok) return null;
 
-    if (!res.ok) return null;
+  const data = await res.json();
 
-    const data = await res.json();
-
-    return {
-      repository_name: data.name,
-      owner: data.owner.login,
-      description: data.description || "",
-      star_count: data.stargazers_count,
-      fork_count: data.forks_count,
-      topics: data.topics || [],
-      license: data.license?.spdx_id || "",
-      default_branch: data.default_branch || "main",
-    };
-  } catch (err) {
-    console.error(`Failed to fetch repo details for ${owner}/${repo}:`, err);
-    return null;
-  }
+  return {
+    repository_name: data.name,
+    owner: data.owner.login,
+    description: data.description || "",
+    star_count: data.stargazers_count,
+    fork_count: data.forks_count,
+    topics: data.topics || [],
+    license: data.license?.spdx_id || "",
+    default_branch: data.default_branch || "main",
+  };
 }
 
-export async function fetchRepoDetailsBatch(
-  urls: string[]
-): Promise<RepoData[]> {
+export async function fetchRepoDetailsBatch(urls: string[]): Promise<RepoData[]> {
   const results: RepoData[] = [];
 
   for (const url of urls) {
@@ -120,36 +108,30 @@ export async function fetchIssues(
   const allIssues: IssueData[] = [];
 
   for (const label of labels) {
-    try {
-      const url = `https://api.github.com/repos/${owner}/${repo}/issues?labels=${encodeURIComponent(label)}&state=open&per_page=10`;
-      const response = await fetch(url, {
-        headers: {
-          Accept: "application/vnd.github.v3+json",
-          "User-Agent": "scrapeverse/0.1.0",
-        },
+    const res = await githubFetch(
+      `/repos/${owner}/${repo}/issues?labels=${encodeURIComponent(label)}&state=open&per_page=10`
+    );
+
+    if (!res || !res.ok) {
+      if (res) {
+        console.error(`GitHub API error for ${owner}/${repo}: ${res.status}`);
+      }
+      continue;
+    }
+
+    const issues = await res.json();
+    for (const issue of issues) {
+      if (issue.pull_request) continue;
+
+      allIssues.push({
+        number: issue.number,
+        title: issue.title,
+        url: issue.html_url,
+        labels: issue.labels.map((l: { name: string }) => l.name),
+        comments: issue.comments,
+        author: issue.user?.login ?? null,
+        createdAt: issue.created_at,
       });
-
-      if (!response.ok) {
-        console.error(`GitHub API error for ${owner}/${repo}: ${response.status}`);
-        continue;
-      }
-
-      const issues = await response.json();
-      for (const issue of issues) {
-        if (issue.pull_request) continue;
-
-        allIssues.push({
-          number: issue.number,
-          title: issue.title,
-          url: issue.html_url,
-          labels: issue.labels.map((l: { name: string }) => l.name),
-          comments: issue.comments,
-          author: issue.user?.login ?? null,
-          createdAt: issue.created_at,
-        });
-      }
-    } catch (err) {
-      console.error(`Failed to fetch issues for ${owner}/${repo} label=${label}:`, err);
     }
   }
 
