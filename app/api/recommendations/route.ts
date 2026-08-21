@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getIssuesWithRepo, isDataStale, runScrapePipeline } from "@/lib/scraper-pipeline";
-import type { Recommendation } from "@/lib/types";
+import type { Recommendation, MatchScore, MatchScoreBreakdown } from "@/lib/types";
 
 function classifyDifficulty(labels: string[]): "beginner" | "intermediate" | "advanced" {
   const lower = labels.map((l) => l.toLowerCase());
@@ -90,6 +90,50 @@ function generateWhyRecommended(
   return reasons.slice(0, 3);
 }
 
+function calculateMatchScore(
+  languages: string[],
+  interests: string[],
+  repo: { language: string | null; topics: string; stars: number },
+  labels: string[],
+  readme: { hasContributionGuide: boolean } | null,
+  isTrending: boolean
+): MatchScore {
+  const breakdown: MatchScoreBreakdown[] = [];
+  const topics = JSON.parse(repo.topics || "[]");
+  const lowerTopics = topics.map((t: string) => t.toLowerCase());
+  const lowerLabels = labels.map((l) => l.toLowerCase());
+
+  if (repo.language && languages.some((l) => l.toLowerCase() === repo.language!.toLowerCase())) {
+    breakdown.push({ label: `${repo.language} match`, points: 30 });
+  }
+
+  const matchedInterest = interests.find((interest) =>
+    lowerTopics.some((t: string) => t.includes(interest.toLowerCase()))
+  );
+  if (matchedInterest) {
+    breakdown.push({ label: `${matchedInterest} interest`, points: 20 });
+  }
+
+  if (lowerLabels.some((l) => l.includes("good first issue"))) {
+    breakdown.push({ label: "Good First Issue", points: 15 });
+  }
+
+  if (repo.stars > 1000) {
+    breakdown.push({ label: "Active project", points: 10 });
+  }
+
+  if (readme?.hasContributionGuide) {
+    breakdown.push({ label: "Contribution guide found", points: 10 });
+  }
+
+  if (isTrending) {
+    breakdown.push({ label: "Recently trending", points: 7 });
+  }
+
+  const total = breakdown.reduce((sum, b) => sum + b.points, 0);
+  return { total, breakdown };
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const languagesRaw = searchParams.get("languages");
@@ -140,6 +184,15 @@ export async function GET(request: NextRequest) {
         }
       : null;
 
+    const matchScore = calculateMatchScore(
+      languages,
+      interests,
+      { language: issue.repo.language, topics: issue.repo.topics, stars: issue.repo.stars },
+      labels,
+      readme,
+      true
+    );
+
     return {
       id: `${issue.repo.id}-${issue.number}`,
       issueNumber: issue.number,
@@ -158,6 +211,7 @@ export async function GET(request: NextRequest) {
       difficulty,
       matchedLabels,
       readme,
+      matchScore,
     };
   });
 
@@ -167,6 +221,8 @@ export async function GET(request: NextRequest) {
   } else if (experience === "Intermediate") {
     filtered = recommendations.filter((r) => r.difficulty !== "advanced");
   }
+
+  filtered.sort((a, b) => b.matchScore.total - a.matchScore.total);
 
   return NextResponse.json({ recommendations: filtered, count: filtered.length });
 }

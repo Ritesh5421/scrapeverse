@@ -42,7 +42,7 @@ const setupComplexityMap: Record<string, { label: string; color: string }> = {
 };
 
 export function RecommendationCard({ recommendation }: RecommendationCardProps) {
-  const { readme } = recommendation;
+  const { readme, matchScore } = recommendation;
   const setupInfo = readme ? setupComplexityMap[readme.setupComplexity] : null;
 
   return (
@@ -62,13 +62,29 @@ export function RecommendationCard({ recommendation }: RecommendationCardProps) 
               #{recommendation.issueNumber} {recommendation.issueTitle}
             </a>
           </div>
-          <Badge
-            variant="outline"
-            className={`text-[10px] px-2 py-0.5 shrink-0 ml-3 ${difficultyColorMap[recommendation.difficulty]}`}
-          >
-            {recommendation.difficulty}
-          </Badge>
+          <div className="shrink-0 ml-3 flex flex-col items-end gap-1">
+            <div className="text-lg font-bold text-foreground tabular-nums">
+              {matchScore.total}
+            </div>
+            <Badge
+              variant="outline"
+              className={`text-[10px] px-2 py-0.5 ${difficultyColorMap[recommendation.difficulty]}`}
+            >
+              {recommendation.difficulty}
+            </Badge>
+          </div>
         </div>
+
+        {matchScore.breakdown.length > 0 && (
+          <div className="flex flex-wrap gap-x-3 gap-y-1 mb-4 text-[10px] text-muted-foreground">
+            {matchScore.breakdown.map((item) => (
+              <span key={item.label} className="flex items-center gap-1">
+                <span className="text-emerald-400 font-medium">+{item.points}</span>
+                {item.label}
+              </span>
+            ))}
+          </div>
+        )}
 
         <div className="flex items-center gap-3 text-[11px] text-muted-foreground mb-4">
           <span className="flex items-center gap-1.5">

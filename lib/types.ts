@@ -59,6 +59,16 @@ export interface ReadmeIntelligence {
   architectureKeywords: string[];
 }
 
+export interface MatchScoreBreakdown {
+  label: string;
+  points: number;
+}
+
+export interface MatchScore {
+  total: number;
+  breakdown: MatchScoreBreakdown[];
+}
+
 export interface Recommendation {
   id: string;
   issueNumber: number;
@@ -77,6 +87,7 @@ export interface Recommendation {
   difficulty: "beginner" | "intermediate" | "advanced";
   matchedLabels: string[];
   readme: ReadmeIntelligence | null;
+  matchScore: MatchScore;
 }
 
 export interface OnboardingPreferences {

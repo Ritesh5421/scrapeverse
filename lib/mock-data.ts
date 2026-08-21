@@ -149,6 +149,17 @@ export const mockRecommendations: Recommendation[] = [
       techStack: ["rust", "compiler"],
       architectureKeywords: ["layered-architecture"],
     },
+    matchScore: {
+      total: 92,
+      breakdown: [
+        { label: "Rust match", points: 30 },
+        { label: "Compilers interest", points: 20 },
+        { label: "Good First Issue", points: 15 },
+        { label: "Active project", points: 10 },
+        { label: "Contribution guide found", points: 10 },
+        { label: "Recently trending", points: 7 },
+      ],
+    },
   },
   {
     id: "2-500",
@@ -176,6 +187,15 @@ export const mockRecommendations: Recommendation[] = [
       setupComplexity: "simple",
       techStack: ["rust", "async", "tokio"],
       architectureKeywords: ["async", "non-blocking"],
+    },
+    matchScore: {
+      total: 57,
+      breakdown: [
+        { label: "Rust match", points: 30 },
+        { label: "Active project", points: 10 },
+        { label: "Contribution guide found", points: 10 },
+        { label: "Recently trending", points: 7 },
+      ],
     },
   },
   {
@@ -205,6 +225,15 @@ export const mockRecommendations: Recommendation[] = [
       techStack: ["c", "lua"],
       architectureKeywords: ["plugin-system", "event-driven"],
     },
+    matchScore: {
+      total: 42,
+      breakdown: [
+        { label: "Good First Issue", points: 15 },
+        { label: "Active project", points: 10 },
+        { label: "Contribution guide found", points: 10 },
+        { label: "Recently trending", points: 7 },
+      ],
+    },
   },
   {
     id: "4-800",
@@ -233,6 +262,14 @@ export const mockRecommendations: Recommendation[] = [
       techStack: ["zig", "compiler"],
       architectureKeywords: ["pipeline"],
     },
+    matchScore: {
+      total: 27,
+      breakdown: [
+        { label: "Active project", points: 10 },
+        { label: "Contribution guide found", points: 10 },
+        { label: "Recently trending", points: 7 },
+      ],
+    },
   },
   {
     id: "5-3000",
@@ -260,6 +297,16 @@ export const mockRecommendations: Recommendation[] = [
       setupComplexity: "moderate",
       techStack: ["rust", "javascript", "typescript"],
       architectureKeywords: ["plugin-system", "async"],
+    },
+    matchScore: {
+      total: 72,
+      breakdown: [
+        { label: "Rust match", points: 30 },
+        { label: "Good First Issue", points: 15 },
+        { label: "Active project", points: 10 },
+        { label: "Contribution guide found", points: 10 },
+        { label: "Recently trending", points: 7 },
+      ],
     },
   },
 ];
