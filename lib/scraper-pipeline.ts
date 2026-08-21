@@ -245,23 +245,6 @@ export async function getIssuesWithRepo(filters: {
     };
   }
 
-  if (filters.interests.length > 0) {
-    const interestOr = filters.interests.map((interest) => ({
-      topics: { contains: interest, mode: "insensitive" as const },
-    }));
-
-    if (where.repo) {
-      where.repo = {
-        AND: [
-          where.repo as Record<string, unknown>,
-          { OR: interestOr },
-        ],
-      };
-    } else {
-      where.repo = { OR: interestOr };
-    }
-  }
-
   const issues = await db.scrapedIssue.findMany({
     where,
     include: {
