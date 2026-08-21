@@ -8,6 +8,12 @@ import {
   useEffect,
 } from "react";
 import type { User, OnboardingPreferences } from "./types";
+import {
+  fetchSession,
+  signInRequest,
+  signOutRequest,
+  signUpRequest,
+} from "./services/auth-service";
 
 interface AuthContextValue {
   user: User | null;
@@ -19,16 +25,6 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
-
-async function fetchSession(): Promise<User | null> {
-  try {
-    const res = await fetch("/api/auth/session");
-    const data = await res.json();
-    return data.user ?? null;
-  } catch {
-    return null;
-  }
-}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -49,18 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = useCallback(
     async (name: string, email: string, password: string) => {
-      const res = await fetch("/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Sign up failed");
-      }
-
-      const data = await res.json();
+      const data = await signUpRequest(name, email, password);
       setUser(data.user);
       return data.user as User;
     },
@@ -68,24 +53,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const signIn = useCallback(async (email: string, password: string) => {
-    const res = await fetch("/api/auth/signin", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-
-    if (!res.ok) {
-      const data = await res.json();
-      throw new Error(data.error || "Sign in failed");
-    }
-
-    const data = await res.json();
+    const data = await signInRequest(email, password);
     setUser(data.user);
     return data.user as User;
   }, []);
 
   const signOut = useCallback(async () => {
-    await fetch("/api/auth/signout", { method: "POST" });
+    await signOutRequest();
     setUser(null);
   }, []);
 

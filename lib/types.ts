@@ -59,8 +59,6 @@ export type TimeCommitment =
   | "5–10 hours/week"
   | "10+ hours/week";
 
-export type ActivityLevel = "Very High" | "High" | "Moderate" | "Low";
-
 export type Badge =
   | "Beginner Friendly"
   | "High Activity"
@@ -130,4 +128,40 @@ export interface TimeOption {
   value: TimeCommitment;
   label: string;
   description: string;
+}
+
+export type ActivityLevel = "high" | "medium" | "low";
+
+export interface Project {
+  id: string;
+  name: string;
+  owner: string;
+  description: string;
+  language: string;
+  stars: number;
+  forks: number;
+  contributors: number;
+  issues: number;
+  goodFirstIssues: number;
+  helpWantedIssues: number;
+  activity: ActivityLevel;
+  matchScore: number;
+  topics: string[];
+  lastCommitDaysAgo: number;
+}
+
+export type SortOption =
+  | "best-match"
+  | "most-stars"
+  | "most-active"
+  | "beginner-friendly";
+
+export interface ProjectQueryFilters {
+  query?: string;
+  language?: string;
+  difficulty?: "any" | "beginner" | "intermediate" | "advanced";
+  minStars?: number;
+  activity?: "any" | ActivityLevel;
+  goodFirstIssuesOnly?: boolean;
+  sort?: SortOption;
 }

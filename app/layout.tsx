@@ -17,9 +17,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ScrapeX - Turn the Web Into Structured Data",
+  title: "ContribHub — Find Open Source Projects to Contribute",
   description:
-    "Extract, transform, and structure data from any website instantly. Turn messy HTML into clean JSON with our intelligent scraper.",
+    "Discover GitHub projects that match your skills. Search, filter, and find good first issues across the open source ecosystem.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
