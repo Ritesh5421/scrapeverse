@@ -110,41 +110,44 @@ export async function fetchIssues(
   labels: string[] = ["good first issue", "help wanted"]
 ): Promise<IssueData[]> {
   const allIssues: IssueData[] = [];
+  const seen = new Set<number>();
+
+  function addIssue(issue: Record<string, unknown>) {
+    if (issue.pull_request) return;
+    const num = issue.number as number;
+    if (seen.has(num)) return;
+    seen.add(num);
+    allIssues.push({
+      number: num,
+      title: issue.title as string,
+      url: issue.html_url as string,
+      labels: (issue.labels as { name: string }[]).map((l) => l.name),
+      comments: issue.comments as number,
+      author: (issue.user as { login: string } | null)?.login ?? null,
+      createdAt: issue.created_at as string,
+    });
+  }
 
   for (const label of labels) {
     const res = await githubFetch(
       `/repos/${owner}/${repo}/issues?labels=${encodeURIComponent(label)}&state=open&per_page=10`
     );
-
-    if (!res || !res.ok) {
-      if (res) {
-        console.error(`GitHub API error for ${owner}/${repo}: ${res.status}`);
-      }
-      continue;
-    }
-
+    if (!res || !res.ok) continue;
     const issues = await res.json();
-    for (const issue of issues) {
-      if (issue.pull_request) continue;
+    for (const issue of issues) addIssue(issue);
+  }
 
-      allIssues.push({
-        number: issue.number,
-        title: issue.title,
-        url: issue.html_url,
-        labels: issue.labels.map((l: { name: string }) => l.name),
-        comments: issue.comments,
-        author: issue.user?.login ?? null,
-        createdAt: issue.created_at,
-      });
+  if (allIssues.length < 5) {
+    const res = await githubFetch(
+      `/repos/${owner}/${repo}/issues?state=open&sort=updated&per_page=15`
+    );
+    if (res && res.ok) {
+      const issues = await res.json();
+      for (const issue of issues) addIssue(issue);
     }
   }
 
-  const seen = new Set<number>();
-  return allIssues.filter((issue) => {
-    if (seen.has(issue.number)) return false;
-    seen.add(issue.number);
-    return true;
-  });
+  return allIssues;
 }
 
 export async function closeClient(): Promise<void> {
