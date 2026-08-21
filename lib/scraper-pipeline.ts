@@ -117,6 +117,7 @@ async function upsertRepo(data: RepoData): Promise<number> {
     },
     update: {
       description: data.description,
+      language: data.language,
       stars: data.star_count,
       forks: data.fork_count,
       topics: JSON.stringify(data.topics || []),
