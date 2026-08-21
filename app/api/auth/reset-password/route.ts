@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
+import { decrypt } from "@/lib/session";
 
 export async function POST(request: Request) {
   try {
@@ -20,11 +22,22 @@ export async function POST(request: Request) {
       );
     }
 
+    const cookieStore = await cookies();
+    const token = cookieStore.get("session")?.value;
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const payload = await decrypt(token);
+    if (!payload) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const user = await db.user.findUnique({
       where: { email: email.toLowerCase() },
     });
 
-    if (!user) {
+    if (!user || user.id !== payload.userId) {
       return NextResponse.json(
         { error: "No account found with this email" },
         { status: 404 }

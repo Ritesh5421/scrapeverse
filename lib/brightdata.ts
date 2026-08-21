@@ -25,6 +25,7 @@ export interface RepoData {
   repository_name: string;
   owner: string;
   description: string;
+  language: string | null;
   star_count: number;
   fork_count: number;
   topics: string[];
@@ -75,6 +76,7 @@ export async function fetchRepoDetails(owner: string, repo: string): Promise<Rep
     repository_name: data.name,
     owner: data.owner.login,
     description: data.description || "",
+    language: data.language || null,
     star_count: data.stargazers_count,
     fork_count: data.forks_count,
     topics: data.topics || [],

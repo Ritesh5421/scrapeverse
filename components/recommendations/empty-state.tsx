@@ -1,9 +1,8 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
-
 interface EmptyStateProps {
   onBroadenSearch: () => void;
+  onSelectTechnology?: (tech: string) => void;
 }
 
 const adjacentTechnologies = [
@@ -15,7 +14,7 @@ const adjacentTechnologies = [
   "Security",
 ];
 
-export function EmptyState({ onBroadenSearch }: EmptyStateProps) {
+export function EmptyState({ onBroadenSearch, onSelectTechnology }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
       <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mb-6">
@@ -50,9 +49,13 @@ export function EmptyState({ onBroadenSearch }: EmptyStateProps) {
         </p>
         <div className="flex flex-wrap justify-center gap-1.5">
           {adjacentTechnologies.map((tech) => (
-            <Badge key={tech} variant="secondary" className="text-xs">
+            <button
+              key={tech}
+              onClick={() => onSelectTechnology?.(tech)}
+              className="text-xs px-2.5 py-1 rounded-md border border-border bg-muted/30 text-muted-foreground hover:text-foreground hover:border-muted-foreground/50 transition-all cursor-pointer"
+            >
               {tech}
-            </Badge>
+            </button>
           ))}
         </div>
       </div>

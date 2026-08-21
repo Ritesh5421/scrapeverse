@@ -1,19 +1,12 @@
-export type AppView = "landing" | "onboarding" | "results" | "preferences";
-
 export interface User {
   id: string;
   email: string;
   name: string;
-  preferences: OnboardingPreferences | null;
   createdAt: string;
+  preferences: OnboardingPreferences | null;
 }
 
-export interface AuthState {
-  user: User | null;
-  isLoading: boolean;
-}
-
-export type OnboardingStep = 1 | 2 | 3 | 4 | 5 | 6;
+export type OnboardingStep = 1 | 2 | 3 | 4 | 5;
 
 export type Interest =
   | "Compilers"
@@ -59,15 +52,6 @@ export type TimeCommitment =
   | "5–10 hours/week"
   | "10+ hours/week";
 
-export type ActivityLevel = "Very High" | "High" | "Moderate" | "Low";
-
-export type Badge =
-  | "Beginner Friendly"
-  | "High Activity"
-  | "Great Documentation"
-  | "Systems Programming"
-  | "Fast Maintainer Response";
-
 export interface ReadmeIntelligence {
   hasContributionGuide: boolean;
   setupComplexity: "simple" | "moderate" | "complex" | "unknown";
@@ -107,7 +91,6 @@ export interface OnboardingPreferences {
 export interface Filters {
   maxDifficulty: "beginner" | "intermediate" | "advanced" | "any";
   language: string;
-  beginnerFriendlyOnly: boolean;
 }
 
 export interface InterestOption {

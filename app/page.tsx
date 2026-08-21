@@ -1,15 +1,12 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Hero } from "@/components/landing/hero";
 import { OnboardingFlow } from "@/components/onboarding/onboarding-flow";
-import { ResultsPage } from "@/components/recommendations/results-page";
 import { AuthModal } from "@/components/auth/auth-modal";
-import { PreferencesEditor } from "@/components/account/preferences-editor";
 import { useAuth } from "@/lib/auth-context";
-import { mockRecommendations } from "@/lib/mock-data";
 import type {
-  AppView,
   OnboardingStep,
   Interest,
   ExperienceLevel,
@@ -17,15 +14,14 @@ import type {
   ProgrammingLanguage,
   TimeCommitment,
   OnboardingPreferences,
-  Recommendation,
 } from "@/lib/types";
 
 export default function Home() {
+  const router = useRouter();
   const { user, isLoading, updatePreferences } = useAuth();
-  const [view, setView] = useState<AppView>("landing");
-  const [step, setStep] = useState<OnboardingStep>(1);
   const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [recommendations, setRecommendations] = useState<Recommendation[]>(mockRecommendations);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [step, setStep] = useState<OnboardingStep>(1);
 
   const [interests, setInterests] = useState<Interest[]>([]);
   const [experienceLevel, setExperienceLevel] =
@@ -83,40 +79,9 @@ export default function Home() {
     [interests, experienceLevel, goals, languages, customLanguages, timeCommitment]
   );
 
-  const loadRecommendations = useCallback(async () => {
-    const allLanguages = [...languages, ...customLanguages];
-    if (allLanguages.length === 0) return;
-
-    try {
-      const params = new URLSearchParams({
-        languages: allLanguages.join(","),
-        interests: interests.join(","),
-      });
-      const res = await fetch(`/api/recommendations?${params}`);
-      if (!res.ok) throw new Error("Failed to fetch");
-      const data = await res.json();
-      if (data.recommendations?.length > 0) {
-        setRecommendations(data.recommendations);
-      }
-    } catch {
-      setRecommendations(mockRecommendations);
-    }
-  }, [languages, customLanguages, interests]);
-
-  const loadPrefsToState = useCallback((prefs: OnboardingPreferences) => {
-    setInterests(prefs.interests);
-    setExperienceLevel(prefs.experienceLevel);
-    setGoals(prefs.goals);
-    setLanguages(prefs.languages);
-    setCustomLanguages(prefs.customLanguages);
-    setTimeCommitment(prefs.timeCommitment);
-  }, []);
-
   const handleGetStarted = () => {
     if (user?.preferences) {
-      loadPrefsToState(user.preferences);
-      setView("results");
-      loadRecommendations();
+      router.push("/results");
       return;
     }
     setAuthModalOpen(true);
@@ -125,44 +90,32 @@ export default function Home() {
   const handleAuthSuccess = (authUser: { name: string; email: string; preferences: OnboardingPreferences | null }) => {
     setAuthModalOpen(false);
     if (authUser.preferences) {
-      loadPrefsToState(authUser.preferences);
-      setView("results");
-      loadRecommendations();
+      router.push("/results");
     } else {
-      setView("onboarding");
+      setShowOnboarding(true);
       setStep(1);
     }
   };
 
   const handleNext = () => {
-    setStep((prev) => Math.min(prev + 1, 6) as OnboardingStep);
+    setStep((prev) => Math.min(prev + 1, 5) as OnboardingStep);
   };
 
   const handleBack = () => {
-    setStep((prev) => Math.max(prev - 1, 1) as OnboardingStep);
+    setStep((prev) => {
+      if (prev <= 1) {
+        setShowOnboarding(false);
+        return 1;
+      }
+      return (prev - 1) as OnboardingStep;
+    });
   };
 
   const handleComplete = async () => {
     if (user) {
       await updatePreferences(currentPrefs);
     }
-    setView("results");
-    loadRecommendations();
-  };
-
-  const handleRestart = () => {
-    setInterests([]);
-    setExperienceLevel(null);
-    setGoals([]);
-    setLanguages([]);
-    setCustomLanguages([]);
-    setTimeCommitment(null);
-    setStep(1);
-    setView("landing");
-  };
-
-  const handleOpenPreferences = () => {
-    setView("preferences");
+    router.push("/results");
   };
 
   if (isLoading) {
@@ -173,24 +126,7 @@ export default function Home() {
     );
   }
 
-  if (view === "preferences") {
-    return <PreferencesEditor onClose={() => setView("results")} />;
-  }
-
-  if (view === "landing") {
-    return (
-      <>
-        <Hero onGetStarted={handleGetStarted} />
-        <AuthModal
-          open={authModalOpen}
-          onClose={() => setAuthModalOpen(false)}
-          onSuccess={handleAuthSuccess}
-        />
-      </>
-    );
-  }
-
-  if (view === "onboarding") {
+  if (showOnboarding) {
     return (
       <OnboardingFlow
         currentStep={step}
@@ -215,10 +151,13 @@ export default function Home() {
   }
 
   return (
-    <ResultsPage
-      recommendations={recommendations.length > 0 ? recommendations : mockRecommendations}
-      onRestart={handleRestart}
-      onOpenPreferences={handleOpenPreferences}
-    />
+    <>
+      <Hero onGetStarted={handleGetStarted} />
+      <AuthModal
+        open={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        onSuccess={handleAuthSuccess}
+      />
+    </>
   );
 }

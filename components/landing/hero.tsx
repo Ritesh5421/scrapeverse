@@ -60,7 +60,7 @@ const previewCards = [
   {
     name: "deno",
     org: "denoland",
-    language: "TypeScript",
+    language: "Rust",
     stars: 100300,
     badges: ["High Activity"],
   },

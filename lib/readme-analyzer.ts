@@ -1,12 +1,7 @@
 import { githubFetch } from "./github-api";
+import type { ReadmeIntelligence } from "./types";
 
-export interface ReadmeIntelligence {
-  rawContent: string;
-  hasContributionGuide: boolean;
-  setupComplexity: "simple" | "moderate" | "complex" | "unknown";
-  techStack: string[];
-  architectureKeywords: string[];
-}
+export type ReadmeIntelligenceWithRaw = ReadmeIntelligence & { rawContent: string };
 
 const CONTRIBUTION_PATTERNS = [
   /contributing/i,
@@ -102,7 +97,7 @@ export function analyzeReadme(content: string): Omit<ReadmeIntelligence, "rawCon
 export async function fetchAndAnalyzeReadme(
   owner: string,
   repo: string
-): Promise<ReadmeIntelligence | null> {
+): Promise<ReadmeIntelligenceWithRaw | null> {
   const rawContent = await fetchReadme(owner, repo);
   if (!rawContent) return null;
 

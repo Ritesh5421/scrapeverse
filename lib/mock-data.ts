@@ -267,5 +267,4 @@ export const mockRecommendations: Recommendation[] = [
 export const defaultFilters = {
   maxDifficulty: "any" as const,
   language: "any",
-  beginnerFriendlyOnly: false,
 };

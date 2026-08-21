@@ -14,11 +14,24 @@ const difficultyColorMap: Record<string, string> = {
   advanced: "bg-amber-500/10 text-amber-400 border-amber-500/20",
 };
 
-const labelColorMap: Record<string, string> = {
+const matchedLabelColorMap: Record<string, string> = {
   "Beginner Friendly": "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
   "Help Wanted": "bg-blue-500/10 text-blue-400 border-blue-500/20",
   "Bug Fix": "bg-red-500/10 text-red-400 border-red-500/20",
   Documentation: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+};
+
+const languageColorMap: Record<string, string> = {
+  Rust: "#dea584",
+  C: "#555555",
+  "C++": "#f34b7d",
+  Go: "#00ADD8",
+  JavaScript: "#f1e05a",
+  TypeScript: "#3178c6",
+  Python: "#3572A5",
+  Java: "#b07219",
+  Kotlin: "#A97BFF",
+  Zig: "#ec915c",
 };
 
 const setupComplexityMap: Record<string, { label: string; color: string }> = {
@@ -59,7 +72,10 @@ export function RecommendationCard({ recommendation }: RecommendationCardProps) 
 
         <div className="flex items-center gap-3 text-[11px] text-muted-foreground mb-4">
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[var(--lang-color)]" />
+            <span
+              className="w-2.5 h-2.5 rounded-full"
+              style={{ backgroundColor: languageColorMap[recommendation.repoLanguage] ?? "#888" }}
+            />
             {recommendation.repoLanguage}
           </span>
           <span className="text-border">·</span>
@@ -70,11 +86,11 @@ export function RecommendationCard({ recommendation }: RecommendationCardProps) 
 
         {recommendation.labels.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mb-4">
-            {recommendation.labels.map((label) => (
+            {recommendation.matchedLabels.map((label) => (
               <Badge
                 key={label}
                 variant="outline"
-                className={`text-[10px] px-2 py-0.5 ${labelColorMap[label] ?? "bg-muted/50 text-muted-foreground border-border"}`}
+                className={`text-[10px] px-2 py-0.5 ${matchedLabelColorMap[label] ?? "bg-muted/50 text-muted-foreground border-border"}`}
               >
                 {label}
               </Badge>

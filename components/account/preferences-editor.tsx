@@ -46,6 +46,7 @@ export function PreferencesEditor({ onClose }: PreferencesEditorProps) {
   );
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -67,6 +68,7 @@ export function PreferencesEditor({ onClose }: PreferencesEditorProps) {
 
   const handleSave = async () => {
     setSaving(true);
+    setSaveError("");
     try {
       const newPrefs: OnboardingPreferences = {
         interests,
@@ -79,6 +81,8 @@ export function PreferencesEditor({ onClose }: PreferencesEditorProps) {
       await updatePreferences(newPrefs);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
+    } catch {
+      setSaveError("Failed to save preferences");
     } finally {
       setSaving(false);
     }
@@ -199,6 +203,9 @@ export function PreferencesEditor({ onClose }: PreferencesEditorProps) {
             </div>
 
             <div className="flex justify-end pt-4">
+              {saveError && (
+                <p className="text-xs text-red-400 mr-auto">{saveError}</p>
+              )}
               <Button
                 onClick={handleSave}
                 disabled={saving}

@@ -14,7 +14,6 @@ const stepLabels = [
   "Goals",
   "Languages",
   "Time",
-  "Results",
 ];
 
 export function ProgressBar({ currentStep, totalSteps }: ProgressBarProps) {

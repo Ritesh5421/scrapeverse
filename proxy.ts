@@ -1,24 +1,37 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+const publicApiRoutes = [
+  "/api/auth/signup",
+  "/api/auth/signin",
+  "/api/auth/signout",
+  "/api/auth/session",
+];
+
+const protectedPages = ["/results", "/preferences"];
+
 export function proxy(request: NextRequest) {
   const session = request.cookies.get("session")?.value;
   const { pathname } = request.nextUrl;
 
   const isApiRoute = pathname.startsWith("/api/");
-  const isAuthRoute =
-    pathname.startsWith("/api/auth/signup") ||
-    pathname.startsWith("/api/auth/signin") ||
-    pathname.startsWith("/api/auth/signout") ||
-    pathname.startsWith("/api/auth/session");
 
-  if (isApiRoute && !isAuthRoute && !session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (isApiRoute) {
+    const isPublicApi = publicApiRoutes.some((route) => pathname.startsWith(route));
+    if (!isPublicApi && !session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    return NextResponse.next();
+  }
+
+  const isProtectedPage = protectedPages.some((route) => pathname.startsWith(route));
+  if (isProtectedPage && !session) {
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/api/user/:path*"],
+  matcher: ["/api/:path*", "/results/:path*", "/preferences/:path*"],
 };

@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import type { Filters } from "@/lib/types";
-import { defaultFilters } from "@/lib/mock-data";
+import { defaultFilters, languageOptions } from "@/lib/mock-data";
 
 interface FilterSidebarProps {
   filters: Filters;
@@ -17,19 +17,7 @@ const difficultyLevels = [
   { value: "advanced", label: "Advanced" },
 ];
 
-const languages = [
-  "any",
-  "Rust",
-  "C",
-  "C++",
-  "Go",
-  "JavaScript",
-  "TypeScript",
-  "Python",
-  "Java",
-  "Kotlin",
-  "Zig",
-];
+const languages = ["any", ...languageOptions.map((l) => l.value)];
 
 export function FilterSidebar({ filters, onChange }: FilterSidebarProps) {
   const update = <K extends keyof Filters>(key: K, value: Filters[K]) => {
@@ -80,18 +68,6 @@ export function FilterSidebar({ filters, onChange }: FilterSidebarProps) {
       </div>
 
         <Separator className="bg-border/50" />
-
-      <div className="space-y-3">
-        <label className="flex items-center gap-2.5 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={filters.beginnerFriendlyOnly}
-            onChange={(e) => update("beginnerFriendlyOnly", e.target.checked)}
-            className="w-3.5 h-3.5 rounded border-border accent-foreground cursor-pointer"
-          />
-          <span className="text-xs text-muted-foreground">Beginner friendly only</span>
-        </label>
-      </div>
 
       <button
         onClick={() => onChange(defaultFilters)}

@@ -105,7 +105,7 @@ async function upsertRepo(data: RepoData): Promise<number> {
       owner: data.owner,
       name: data.repository_name,
       description: data.description,
-      language: null,
+      language: data.language,
       stars: data.star_count,
       forks: data.fork_count,
       topics: JSON.stringify(data.topics || []),
@@ -149,24 +149,33 @@ async function upsertIssue(repoId: number, data: IssueData): Promise<void> {
   });
 }
 
+const VALID_SETUP_COMPLEXITIES = ["simple", "moderate", "complex", "unknown"] as const;
+
+function validateSetupComplexity(value: string): "simple" | "moderate" | "complex" | "unknown" {
+  return VALID_SETUP_COMPLEXITIES.includes(value as (typeof VALID_SETUP_COMPLEXITIES)[number])
+    ? (value as (typeof VALID_SETUP_COMPLEXITIES)[number])
+    : "unknown";
+}
+
 async function upsertReadme(
   repoId: number,
   data: { rawContent: string; hasContributionGuide: boolean; setupComplexity: string; techStack: string[]; architectureKeywords: string[] }
 ): Promise<void> {
+  const setupComplexity = validateSetupComplexity(data.setupComplexity);
   await db.scrapedReadme.upsert({
     where: { repoId },
     create: {
       repoId,
       rawContent: data.rawContent.slice(0, 50000),
       hasContributionGuide: data.hasContributionGuide,
-      setupComplexity: data.setupComplexity,
+      setupComplexity,
       techStack: JSON.stringify(data.techStack),
       architectureKeywords: JSON.stringify(data.architectureKeywords),
     },
     update: {
       rawContent: data.rawContent.slice(0, 50000),
       hasContributionGuide: data.hasContributionGuide,
-      setupComplexity: data.setupComplexity,
+      setupComplexity,
       techStack: JSON.stringify(data.techStack),
       architectureKeywords: JSON.stringify(data.architectureKeywords),
       scrapedAt: new Date(),
@@ -219,12 +228,34 @@ export async function getIssuesWithRepo(filters: {
   const where: Record<string, unknown> = {};
 
   if (filters.languages.length > 0) {
+    const languageOr = filters.languages.map((lang) => ({
+      language: { equals: lang, mode: "insensitive" },
+    }));
+
+    const topicOr = filters.languages.map((lang) => ({
+      topics: { contains: lang, mode: "insensitive" as const },
+    }));
+
     where.repo = {
-      OR: [
-        { language: { in: filters.languages, mode: "insensitive" } },
-        { topics: { hasSome: filters.languages } },
-      ],
+      OR: [...languageOr, ...topicOr],
     };
+  }
+
+  if (filters.interests.length > 0) {
+    const interestOr = filters.interests.map((interest) => ({
+      topics: { contains: interest, mode: "insensitive" as const },
+    }));
+
+    if (where.repo) {
+      where.repo = {
+        AND: [
+          where.repo as Record<string, unknown>,
+          { OR: interestOr },
+        ],
+      };
+    } else {
+      where.repo = { OR: interestOr };
+    }
   }
 
   const issues = await db.scrapedIssue.findMany({

@@ -94,6 +94,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const languagesRaw = searchParams.get("languages");
   const interestsRaw = searchParams.get("interests");
+  const experience = searchParams.get("experience");
 
   const languages = languagesRaw ? languagesRaw.split(",").filter(Boolean) : [];
   const interests = interestsRaw ? interestsRaw.split(",").filter(Boolean) : [];
@@ -160,5 +161,12 @@ export async function GET(request: NextRequest) {
     };
   });
 
-  return NextResponse.json({ recommendations, count: recommendations.length });
+  let filtered = recommendations;
+  if (experience === "Beginner") {
+    filtered = recommendations.filter((r) => r.difficulty === "beginner");
+  } else if (experience === "Intermediate") {
+    filtered = recommendations.filter((r) => r.difficulty !== "advanced");
+  }
+
+  return NextResponse.json({ recommendations: filtered, count: filtered.length });
 }

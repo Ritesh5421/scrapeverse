@@ -13,14 +13,19 @@ interface ResultsPageProps {
   recommendations: Recommendation[];
   onRestart: () => void;
   onOpenPreferences: () => void;
+  initialDifficulty?: Filters["maxDifficulty"];
 }
 
 export function ResultsPage({
   recommendations,
   onRestart,
   onOpenPreferences,
+  initialDifficulty = "any",
 }: ResultsPageProps) {
-  const [filters, setFilters] = useState<Filters>(defaultFilters);
+  const [filters, setFilters] = useState<Filters>({
+    ...defaultFilters,
+    maxDifficulty: initialDifficulty,
+  });
   const [showFilters, setShowFilters] = useState(false);
 
   const filtered = useMemo(() => {
@@ -29,8 +34,6 @@ export function ResultsPage({
         filters.language !== "any" &&
         rec.repoLanguage !== filters.language
       )
-        return false;
-      if (filters.beginnerFriendlyOnly && rec.difficulty !== "beginner")
         return false;
       if (
         filters.maxDifficulty !== "any" &&

@@ -69,7 +69,13 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({
-      user: { id: user.id, name: user.name, email: user.email },
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        createdAt: user.createdAt.toISOString(),
+        preferences: null,
+      },
     });
   } catch (error) {
     console.error("Signup error:", error);
