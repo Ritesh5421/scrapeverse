@@ -31,6 +31,7 @@ export interface RepoData {
   topics: string[];
   license: string;
   default_branch: string;
+  pushed_at: string | null;
 }
 
 export interface IssueData {
@@ -82,6 +83,7 @@ export async function fetchRepoDetails(owner: string, repo: string): Promise<Rep
     topics: data.topics || [],
     license: data.license?.spdx_id || "",
     default_branch: data.default_branch || "main",
+    pushed_at: data.pushed_at || null,
   };
 }
 

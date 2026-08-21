@@ -114,6 +114,7 @@ async function upsertRepo(data: RepoData): Promise<number> {
       topics: JSON.stringify(data.topics || []),
       license: data.license,
       defaultBranch: data.default_branch,
+      pushedAt: data.pushed_at ? new Date(data.pushed_at) : null,
     },
     update: {
       description: data.description,
@@ -123,6 +124,7 @@ async function upsertRepo(data: RepoData): Promise<number> {
       topics: JSON.stringify(data.topics || []),
       license: data.license,
       defaultBranch: data.default_branch,
+      pushedAt: data.pushed_at ? new Date(data.pushed_at) : null,
       scrapedAt: new Date(),
       updatedAt: new Date(),
     },

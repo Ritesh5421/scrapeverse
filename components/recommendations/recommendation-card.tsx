@@ -2,7 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import type { Recommendation } from "@/lib/types";
+import type { Recommendation, MatchScoreBreakdown } from "@/lib/types";
 
 interface RecommendationCardProps {
   recommendation: Recommendation;
@@ -41,9 +41,42 @@ const setupComplexityMap: Record<string, { label: string; color: string }> = {
   unknown: { label: "Setup Unknown", color: "text-muted-foreground" },
 };
 
+const categoryColorMap: Record<string, string> = {
+  language: "text-sky-400",
+  interest: "text-violet-400",
+  issue: "text-emerald-400",
+  project: "text-amber-400",
+};
+
+function ScoreBreakdownGroup({ items, label }: { items: MatchScoreBreakdown[]; label: string }) {
+  if (items.length === 0) return null;
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="text-[10px] text-muted-foreground/60 uppercase tracking-wider w-14 shrink-0">
+        {label}
+      </span>
+      <div className="flex flex-wrap gap-x-2 gap-y-0.5">
+        {items.map((item) => (
+          <span key={item.label} className="flex items-center gap-0.5 text-[10px]">
+            <span className={`font-medium ${categoryColorMap[item.category]}`}>
+              {item.points > 0 ? "+" : ""}{item.points}
+            </span>
+            <span className="text-muted-foreground">{item.label}</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function RecommendationCard({ recommendation }: RecommendationCardProps) {
   const { readme, matchScore } = recommendation;
   const setupInfo = readme ? setupComplexityMap[readme.setupComplexity] : null;
+
+  const languageItems = matchScore.breakdown.filter((b) => b.category === "language");
+  const interestItems = matchScore.breakdown.filter((b) => b.category === "interest");
+  const issueItems = matchScore.breakdown.filter((b) => b.category === "issue");
+  const projectItems = matchScore.breakdown.filter((b) => b.category === "project");
 
   return (
     <Card className="p-0 overflow-hidden border-border/50 hover:border-border transition-all duration-300 group">
@@ -76,13 +109,11 @@ export function RecommendationCard({ recommendation }: RecommendationCardProps) 
         </div>
 
         {matchScore.breakdown.length > 0 && (
-          <div className="flex flex-wrap gap-x-3 gap-y-1 mb-4 text-[10px] text-muted-foreground">
-            {matchScore.breakdown.map((item) => (
-              <span key={item.label} className="flex items-center gap-1">
-                <span className="text-emerald-400 font-medium">+{item.points}</span>
-                {item.label}
-              </span>
-            ))}
+          <div className="space-y-1 mb-4">
+            <ScoreBreakdownGroup items={languageItems} label="Lang" />
+            <ScoreBreakdownGroup items={interestItems} label="Fit" />
+            <ScoreBreakdownGroup items={issueItems} label="Issue" />
+            <ScoreBreakdownGroup items={projectItems} label="Repo" />
           </div>
         )}
 
@@ -100,7 +131,7 @@ export function RecommendationCard({ recommendation }: RecommendationCardProps) 
           <span>{recommendation.comments} comments</span>
         </div>
 
-        {recommendation.labels.length > 0 && (
+        {recommendation.matchedLabels.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mb-4">
             {recommendation.matchedLabels.map((label) => (
               <Badge
