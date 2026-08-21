@@ -28,7 +28,6 @@ export function ResultsPage({
     ...defaultFilters,
     maxDifficulty: initialDifficulty,
   });
-  const [showFilters, setShowFilters] = useState(false);
 
   const filtered = useMemo(() => {
     return recommendations.filter((rec) => {
@@ -75,14 +74,6 @@ export function ResultsPage({
           </div>
           <div className="flex items-center gap-2">
             <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowFilters(!showFilters)}
-              className="cursor-pointer text-xs"
-            >
-              {showFilters ? "Hide Filters" : "Filters"}
-            </Button>
-            <Button
               variant="outline"
               size="sm"
               onClick={onRestart}
@@ -97,11 +88,7 @@ export function ResultsPage({
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         <div className="flex flex-col lg:flex-row gap-8">
-          <div
-            className={`transition-all duration-300 ${
-              showFilters ? "block" : "hidden lg:block"
-            }`}
-          >
+          <div className="shrink-0">
             <FilterSidebar filters={filters} onChange={setFilters} />
           </div>
 

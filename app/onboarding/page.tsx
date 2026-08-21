@@ -2,9 +2,7 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Hero } from "@/components/landing/hero";
 import { OnboardingFlow } from "@/components/onboarding/onboarding-flow";
-import { AuthModal } from "@/components/auth/auth-modal";
 import { useAuth } from "@/lib/auth-context";
 import type {
   OnboardingStep,
@@ -16,11 +14,9 @@ import type {
   OnboardingPreferences,
 } from "@/lib/types";
 
-export default function Home() {
+export default function Onboarding() {
   const router = useRouter();
   const { user, isLoading, updatePreferences } = useAuth();
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(false);
   const [step, setStep] = useState<OnboardingStep>(1);
 
   const [interests, setInterests] = useState<Interest[]>([]);
@@ -79,23 +75,6 @@ export default function Home() {
     [interests, experienceLevel, goals, languages, customLanguages, timeCommitment]
   );
 
-  const handleGetStarted = () => {
-    if (user?.preferences) {
-      router.push("/results");
-      return;
-    }
-    setAuthModalOpen(true);
-  };
-
-  const handleAuthSuccess = (authUser: { name: string; email: string; preferences: OnboardingPreferences | null }) => {
-    setAuthModalOpen(false);
-    if (authUser.preferences) {
-      router.push("/results");
-    } else {
-      router.push("/onboarding");
-    }
-  };
-
   const handleNext = () => {
     setStep((prev) => Math.min(prev + 1, 5) as OnboardingStep);
   };
@@ -103,7 +82,7 @@ export default function Home() {
   const handleBack = () => {
     setStep((prev) => {
       if (prev <= 1) {
-        setShowOnboarding(false);
+        router.push("/");
         return 1;
       }
       return (prev - 1) as OnboardingStep;
@@ -125,38 +104,25 @@ export default function Home() {
     );
   }
 
-  if (showOnboarding) {
-    return (
-      <OnboardingFlow
-        currentStep={step}
-        interests={interests}
-        experienceLevel={experienceLevel}
-        goals={goals}
-        languages={languages}
-        customLanguages={customLanguages}
-        timeCommitment={timeCommitment}
-        onToggleInterest={handleToggleInterest}
-        onSelectExperience={setExperienceLevel}
-        onToggleGoal={handleToggleGoal}
-        onToggleLanguage={handleToggleLanguage}
-        onAddCustomLanguage={handleAddCustomLanguage}
-        onRemoveCustomLanguage={handleRemoveCustomLanguage}
-        onSelectTime={setTimeCommitment}
-        onNext={handleNext}
-        onBack={handleBack}
-        onComplete={handleComplete}
-      />
-    );
-  }
-
   return (
-    <>
-      <Hero onGetStarted={handleGetStarted} />
-      <AuthModal
-        open={authModalOpen}
-        onClose={() => setAuthModalOpen(false)}
-        onSuccess={handleAuthSuccess}
-      />
-    </>
+    <OnboardingFlow
+      currentStep={step}
+      interests={interests}
+      experienceLevel={experienceLevel}
+      goals={goals}
+      languages={languages}
+      customLanguages={customLanguages}
+      timeCommitment={timeCommitment}
+      onToggleInterest={handleToggleInterest}
+      onSelectExperience={setExperienceLevel}
+      onToggleGoal={handleToggleGoal}
+      onToggleLanguage={handleToggleLanguage}
+      onAddCustomLanguage={handleAddCustomLanguage}
+      onRemoveCustomLanguage={handleRemoveCustomLanguage}
+      onSelectTime={setTimeCommitment}
+      onNext={handleNext}
+      onBack={handleBack}
+      onComplete={handleComplete}
+    />
   );
 }
