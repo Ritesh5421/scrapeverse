@@ -89,6 +89,7 @@ export interface Recommendation {
   matchedLabels: string[];
   readme: ReadmeIntelligence | null;
   matchScore: MatchScore;
+  readinessScore: number;
 }
 
 export interface OnboardingPreferences {

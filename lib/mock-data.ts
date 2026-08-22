@@ -160,6 +160,7 @@ export const mockRecommendations: Recommendation[] = [
         { label: "Trending now", points: 7, category: "project" as const },
       ],
     },
+    readinessScore: 90,
   },
   {
     id: "2-500",
@@ -200,6 +201,7 @@ export const mockRecommendations: Recommendation[] = [
         { label: "Trending now", points: 7, category: "project" as const },
       ],
     },
+    readinessScore: 75,
   },
   {
     id: "3-1200",
@@ -240,6 +242,7 @@ export const mockRecommendations: Recommendation[] = [
         { label: "Trending now", points: 7, category: "project" as const },
       ],
     },
+    readinessScore: 70,
   },
   {
     id: "4-800",
@@ -277,6 +280,7 @@ export const mockRecommendations: Recommendation[] = [
         { label: "Trending now", points: 7, category: "project" as const },
       ],
     },
+    readinessScore: 55,
   },
   {
     id: "5-3000",
@@ -318,6 +322,7 @@ export const mockRecommendations: Recommendation[] = [
         { label: "Trending now", points: 7, category: "project" as const },
       ],
     },
+    readinessScore: 80,
   },
 ];
 

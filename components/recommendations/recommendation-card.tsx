@@ -72,7 +72,7 @@ function ScoreBreakdownGroup({ items, label }: { items: MatchScoreBreakdown[]; l
 }
 
 export function RecommendationCard({ recommendation }: RecommendationCardProps) {
-  const { readme, matchScore } = recommendation;
+  const { readme, matchScore, readinessScore } = recommendation;
   const setupInfo = readme ? setupComplexityMap[readme.setupComplexity] : null;
 
   const languageItems = matchScore.breakdown.filter((b) => b.category === "language");
@@ -113,7 +113,7 @@ export function RecommendationCard({ recommendation }: RecommendationCardProps) 
         </div>
 
         {matchScore.breakdown.length > 0 && (
-          <div className="space-y-1 mb-4">
+          <div className="space-y-1 mb-3">
             <ScoreBreakdownGroup items={languageItems} label="Lang" />
             <ScoreBreakdownGroup items={interestItems} label="Fit" />
             <ScoreBreakdownGroup items={issueItems} label="Issue" />
@@ -126,6 +126,41 @@ export function RecommendationCard({ recommendation }: RecommendationCardProps) 
             )}
           </div>
         )}
+
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+              Contribution Readiness
+            </span>
+            <span
+              className={`text-[11px] font-semibold tabular-nums ${
+                readinessScore >= 80
+                  ? "text-emerald-400"
+                  : readinessScore >= 60
+                  ? "text-amber-400"
+                  : readinessScore >= 40
+                  ? "text-orange-400"
+                  : "text-red-400"
+              }`}
+            >
+              {readinessScore}/100
+            </span>
+          </div>
+          <div className="h-1.5 rounded-full bg-muted/50 overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all ${
+                readinessScore >= 80
+                  ? "bg-emerald-400"
+                  : readinessScore >= 60
+                  ? "bg-amber-400"
+                  : readinessScore >= 40
+                  ? "bg-orange-400"
+                  : "bg-red-400"
+              }`}
+              style={{ width: `${readinessScore}%` }}
+            />
+          </div>
+        </div>
 
         <div className="flex items-center gap-3 text-[11px] text-muted-foreground mb-4">
           <span className="flex items-center gap-1.5">

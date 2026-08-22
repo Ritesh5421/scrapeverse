@@ -411,6 +411,39 @@ function calculateTimeFitScore(
   }
 }
 
+function calculateReadinessScore(
+  labels: string[],
+  comments: number,
+  issueAge: number,
+  readme: { hasContributionGuide: boolean; setupComplexity: string } | null,
+  repoStars: number
+): number {
+  let score = 0;
+
+  if (readme?.hasContributionGuide) score += 25;
+
+  if (readme?.setupComplexity === "simple") score += 15;
+  else if (readme?.setupComplexity === "moderate") score += 5;
+  else if (readme?.setupComplexity === "complex") score -= 5;
+
+  const lower = labels.map((l) => l.toLowerCase());
+  if (lower.some((l) => l.includes("good first issue"))) score += 15;
+  if (lower.some((l) => l.includes("help wanted"))) score += 10;
+  if (lower.some((l) => l.includes("documentation") || l.includes("docs"))) score += 5;
+
+  if (issueAge <= 7) score += 10;
+  else if (issueAge <= 30) score += 5;
+  else if (issueAge > 90) score -= 10;
+
+  if (comments >= 2 && comments <= 15) score += 10;
+
+  if (readme?.hasContributionGuide !== undefined) score += 5;
+
+  if (repoStars > 10000) score += 5;
+
+  return Math.max(0, Math.min(100, score));
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const languagesRaw = searchParams.get("languages");
@@ -512,6 +545,14 @@ export async function GET(request: NextRequest) {
       timeFitSignal
     );
 
+    const readinessScore = calculateReadinessScore(
+      labels,
+      issue.comments,
+      issueAge,
+      readmeData,
+      issue.repo.stars
+    );
+
     return {
       id: `${issue.repo.id}-${issue.number}`,
       issueNumber: issue.number,
@@ -531,6 +572,7 @@ export async function GET(request: NextRequest) {
       matchedLabels,
       readme: readmeData,
       matchScore,
+      readinessScore,
     };
   });
 
