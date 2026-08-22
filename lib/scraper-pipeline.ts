@@ -10,10 +10,6 @@ import {
 } from "./brightdata";
 import { fetchAndAnalyzeReadme } from "./readme-analyzer";
 
-const SCRAPE_STALENESS_MS = 6 * 60 * 60 * 1000;
-
-let scraping = false;
-
 export async function runScrapePipeline(): Promise<{
   discovered: number;
   scraped: number;
@@ -22,11 +18,6 @@ export async function runScrapePipeline(): Promise<{
   trendingRepos: string[];
   errors: string[];
 }> {
-  if (scraping) {
-    return { discovered: 0, scraped: 0, issuesScraped: 0, readmesScraped: 0, trendingRepos: [], errors: ["Scrape already in progress"] };
-  }
-
-  scraping = true;
   const errors: string[] = [];
   let discovered = 0;
   let scraped = 0;
@@ -54,7 +45,7 @@ export async function runScrapePipeline(): Promise<{
         fork_count: r.forks,
         topics: JSON.parse(r.topics || "[]"),
         license: r.license || "",
-        default_branch: r.defaultBranch,
+        default_branch: r.defaultBranch || "main",
         pushed_at: r.pushedAt?.toISOString() || null,
       }));
       if (repoDataList.length > 0) {
@@ -91,7 +82,6 @@ export async function runScrapePipeline(): Promise<{
   } catch (err) {
     errors.push(`Pipeline error: ${err}`);
   } finally {
-    scraping = false;
     await closeClient();
   }
 
@@ -125,13 +115,6 @@ export async function runScrapeForRepo(fullName: string): Promise<boolean> {
   } finally {
     await closeClient();
   }
-}
-
-export function triggerBackgroundScrape(): void {
-  if (scraping) return;
-  runScrapePipeline().catch((err) => {
-    console.error("Background scrape failed:", err);
-  });
 }
 
 async function upsertRepo(data: RepoData): Promise<number> {
@@ -288,15 +271,4 @@ export async function getIssuesWithRepo(filters: {
   });
 
   return issues;
-}
-
-export async function isDataStale(): Promise<boolean> {
-  const count = await db.scrapedRepo.count();
-  if (count === 0) return true;
-
-  const oldest = await db.scrapedRepo.findFirst({
-    orderBy: { scrapedAt: "asc" },
-  });
-  if (!oldest) return true;
-  return Date.now() - oldest.scrapedAt.getTime() > SCRAPE_STALENESS_MS;
 }
