@@ -29,7 +29,11 @@ export default function Results() {
     const params = new URLSearchParams({
       languages: allLanguages.join(","),
       interests: user.preferences!.interests.join(","),
+      goals: user.preferences!.goals.join(","),
     });
+    if (user.preferences!.timeCommitment) {
+      params.set("timeCommitment", user.preferences!.timeCommitment);
+    }
 
     fetch(`/api/recommendations?${params}`)
       .then((res) => (res.ok ? res.json() : null))

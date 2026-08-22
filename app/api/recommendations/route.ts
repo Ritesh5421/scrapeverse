@@ -55,7 +55,12 @@ function generateWhyRecommended(
   readme: { hasContributionGuide: boolean; setupComplexity: string; techStack: string[] } | null,
   issueAge: number,
   comments: number,
-  isTrending: boolean
+  isTrending: boolean,
+  goals: string[],
+  timeCommitment: string | null,
+  complexity: "low" | "medium" | "high",
+  goalSignals: { points: number; label: string }[],
+  timeFitSignal: { points: number; label: string } | null
 ): string[] {
   const reasons: string[] = [];
   const topics: string[] = JSON.parse(repo.topics || "[]");
@@ -131,6 +136,32 @@ function generateWhyRecommended(
     reasons.push("Currently trending on GitHub.");
   }
 
+  if (goals.includes("First Open Source Contribution") && difficulty === "beginner") {
+    reasons.push("Great fit for your first open source contribution.");
+  }
+  if (goals.includes("Build Portfolio") && repo.stars > 1000) {
+    reasons.push("Visible project that strengthens your portfolio.");
+  }
+  if (goals.includes("Find Mentors") && comments > 5) {
+    reasons.push("Active discussion — good opportunity to connect with maintainers.");
+  }
+  if (goals.includes("Contribute to Production Systems") && repo.stars > 10000) {
+    reasons.push("Production-grade project used by many teams.");
+  }
+  if (goals.includes("Prepare for Jobs") && repo.stars > 10000) {
+    reasons.push("Resume-worthy project with wide industry recognition.");
+  }
+  if (goals.includes("Deep Technical Learning") && complexity === "high") {
+    reasons.push("Deep technical challenge — great for skill growth.");
+  }
+  if (goals.includes("Learn New Technologies") && labels.includes("documentation")) {
+    reasons.push("Documentation task — perfect for learning a new codebase.");
+  }
+
+  if (timeFitSignal && timeFitSignal.points > 0) {
+    reasons.push(`Fits your ${timeCommitment?.toLowerCase()} availability.`);
+  }
+
   if (reasons.length === 0) {
     reasons.push("Active issue in a relevant repository.");
   }
@@ -147,7 +178,9 @@ function calculateMatchScore(
   isTrending: boolean,
   issueAge: number,
   comments: number,
-  experienceLevel: string | null
+  experienceLevel: string | null,
+  goalSignals: { points: number; label: string }[],
+  timeFitSignal: { points: number; label: string } | null
 ): MatchScore {
   const breakdown: MatchScoreBreakdown[] = [];
   const topics: string[] = JSON.parse(repo.topics || "[]");
@@ -155,7 +188,7 @@ function calculateMatchScore(
   const lowerLabels = labels.map((l) => l.toLowerCase());
   const isBeginner = experienceLevel === "Beginner";
 
-  // --- Language match (max 30) ---
+  // --- Language match (max 35) ---
   if (repo.language && languages.some((l) => l.toLowerCase() === repo.language!.toLowerCase())) {
     breakdown.push({ label: `${repo.language} primary`, points: 30, category: "language" });
   } else {
@@ -184,7 +217,7 @@ function calculateMatchScore(
     breakdown.push({ label: `${matchedInterests[0]} interest`, points: 12, category: "interest" });
   }
 
-  // --- Issue quality (max 20) ---
+  // --- Issue quality (max ~20) ---
   if (lowerLabels.some((l) => l.includes("good first issue"))) {
     breakdown.push({ label: "Good First Issue", points: isBeginner ? 15 : 10, category: "issue" });
   }
@@ -214,7 +247,7 @@ function calculateMatchScore(
     breakdown.push({ label: "High engagement", points: 1, category: "issue" });
   }
 
-  // --- Project health (max 25) ---
+  // --- Project health (max ~25) ---
   if (repo.stars > 10000) {
     breakdown.push({ label: "Established project", points: 12, category: "project" });
   } else if (repo.stars > 1000) {
@@ -237,18 +270,158 @@ function calculateMatchScore(
     breakdown.push({ label: "Trending now", points: 7, category: "project" });
   }
 
+  // --- Goal alignment (max ~15) ---
+  for (const sig of goalSignals) {
+    breakdown.push({ label: sig.label, points: sig.points, category: "goal" });
+  }
+
+  // --- Time fit (max ~5, can go negative) ---
+  if (timeFitSignal) {
+    breakdown.push({ label: timeFitSignal.label, points: timeFitSignal.points, category: "fit" });
+  }
+
   const total = breakdown.reduce((sum, b) => sum + b.points, 0);
   return { total, breakdown };
+}
+
+function estimateIssueComplexity(
+  labels: string[],
+  readme: { setupComplexity: string } | null,
+  comments: number
+): "low" | "medium" | "high" {
+  const lower = labels.map((l) => l.toLowerCase());
+  if (
+    lower.some((l) => l.includes("good first issue") || l.includes("easy") || l.includes("beginner"))
+  ) {
+    return "low";
+  }
+  if (readme?.setupComplexity === "complex") return "high";
+  if (comments > 15) return "high";
+  if (
+    lower.some((l) => l.includes("help wanted") || l.includes("enhancement") || l.includes("documentation"))
+  ) {
+    return "medium";
+  }
+  return "medium";
+}
+
+function calculateGoalScore(
+  goals: string[],
+  labels: string[],
+  repo: { stars: number },
+  readme: { hasContributionGuide: boolean; setupComplexity: string } | null,
+  difficulty: string
+): { points: number; label: string }[] {
+  const signals: { points: number; label: string }[] = [];
+  const lower = labels.map((l) => l.toLowerCase());
+
+  for (const goal of goals) {
+    switch (goal) {
+      case "First Open Source Contribution": {
+        if (lower.some((l) => l.includes("good first issue"))) {
+          signals.push({ points: 5, label: "First contribution pick" });
+        }
+        if (readme?.hasContributionGuide) {
+          signals.push({ points: 3, label: "Contribution guide" });
+        }
+        if (readme?.setupComplexity === "simple") {
+          signals.push({ points: 3, label: "Simple setup" });
+        }
+        break;
+      }
+      case "Build Portfolio": {
+        if (repo.stars > 10000) {
+          signals.push({ points: 5, label: "Portfolio-worthy project" });
+        } else if (repo.stars > 1000) {
+          signals.push({ points: 3, label: "Visible project" });
+        }
+        break;
+      }
+      case "Learn New Technologies": {
+        if (lower.some((l) => l.includes("documentation") || l.includes("docs"))) {
+          signals.push({ points: 5, label: "Documentation task" });
+        }
+        if (repo.stars > 1000) {
+          signals.push({ points: 3, label: "Established codebase" });
+        }
+        break;
+      }
+      case "Find Mentors": {
+        if (lower.some((l) => l.includes("help wanted"))) {
+          signals.push({ points: 5, label: "Maintainers seeking help" });
+        }
+        if (repo.stars > 1000) {
+          signals.push({ points: 3, label: "Active community" });
+        }
+        break;
+      }
+      case "Contribute to Production Systems": {
+        if (repo.stars > 10000) {
+          signals.push({ points: 8, label: "Production-grade project" });
+        } else if (repo.stars > 1000) {
+          signals.push({ points: 5, label: "Growing production project" });
+        }
+        break;
+      }
+      case "Prepare for Jobs": {
+        if (repo.stars > 10000) {
+          signals.push({ points: 5, label: "Resume-worthy project" });
+        }
+        if (lower.some((l) => l.includes("good first issue"))) {
+          signals.push({ points: 3, label: "Quick win for portfolio" });
+        }
+        break;
+      }
+      case "Deep Technical Learning": {
+        if (readme?.setupComplexity === "complex") {
+          signals.push({ points: 5, label: "Complex system to explore" });
+        }
+        if (difficulty === "advanced") {
+          signals.push({ points: 3, label: "Advanced challenge" });
+        }
+        break;
+      }
+    }
+  }
+
+  return signals;
+}
+
+function calculateTimeFitScore(
+  timeCommitment: string,
+  complexity: "low" | "medium" | "high"
+): { points: number; label: string } | null {
+  switch (timeCommitment) {
+    case "Less than 2 hours/week":
+      if (complexity === "low") return { points: 5, label: "Quick task" };
+      if (complexity === "high") return { points: -4, label: "Time-intensive" };
+      return null;
+    case "2–5 hours/week":
+      if (complexity === "low") return { points: 3, label: "Manageable task" };
+      if (complexity === "high") return { points: -2, label: "Needs more time" };
+      return null;
+    case "5–10 hours/week":
+      if (complexity === "high") return { points: 2, label: "Good use of time" };
+      return null;
+    case "10+ hours/week":
+      if (complexity === "high") return { points: 4, label: "Deep dive ready" };
+      return null;
+    default:
+      return null;
+  }
 }
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const languagesRaw = searchParams.get("languages");
   const interestsRaw = searchParams.get("interests");
+  const goalsRaw = searchParams.get("goals");
+  const timeCommitment = searchParams.get("timeCommitment");
   const experience = searchParams.get("experience");
 
   const languages = languagesRaw ? languagesRaw.split(",").filter(Boolean) : [];
   const interests = interestsRaw ? interestsRaw.split(",").filter(Boolean) : [];
+  const goals = goalsRaw ? goalsRaw.split(",").filter(Boolean) : [];
 
   if (languages.length === 0) {
     return NextResponse.json(
@@ -294,17 +467,19 @@ export async function GET(request: NextRequest) {
         }
       : null;
 
-    const whyRecommended = generateWhyRecommended(
-      languages,
-      interests,
-      { language: issue.repo.language, topics: issue.repo.topics, stars: issue.repo.stars },
+    const complexity = estimateIssueComplexity(labels, readmeData, issue.comments);
+
+    const goalSignals = calculateGoalScore(
+      goals,
       labels,
-      difficulty,
+      { stars: issue.repo.stars },
       readmeData,
-      issueAge,
-      issue.comments,
-      isTrending
+      difficulty
     );
+
+    const timeFitSignal = timeCommitment
+      ? calculateTimeFitScore(timeCommitment, complexity)
+      : null;
 
     const matchScore = calculateMatchScore(
       languages,
@@ -315,7 +490,26 @@ export async function GET(request: NextRequest) {
       isTrending,
       issueAge,
       issue.comments,
-      experience
+      experience,
+      goalSignals,
+      timeFitSignal
+    );
+
+    const whyRecommended = generateWhyRecommended(
+      languages,
+      interests,
+      { language: issue.repo.language, topics: issue.repo.topics, stars: issue.repo.stars },
+      labels,
+      difficulty,
+      readmeData,
+      issueAge,
+      issue.comments,
+      isTrending,
+      goals,
+      timeCommitment,
+      complexity,
+      goalSignals,
+      timeFitSignal
     );
 
     return {

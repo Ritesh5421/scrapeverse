@@ -62,7 +62,7 @@ export interface ReadmeIntelligence {
 export interface MatchScoreBreakdown {
   label: string;
   points: number;
-  category: "language" | "interest" | "issue" | "project";
+  category: "language" | "interest" | "issue" | "project" | "goal" | "fit";
 }
 
 export interface MatchScore {
