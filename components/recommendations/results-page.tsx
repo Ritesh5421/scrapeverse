@@ -12,7 +12,6 @@ import type { Filters, Recommendation } from "@/lib/types";
 interface ResultsPageProps {
   recommendations: Recommendation[];
   onRestart: () => void;
-  onOpenPreferences: () => void;
   initialDifficulty?: Filters["maxDifficulty"];
   dataSource?: "live" | "mock";
 }
@@ -20,7 +19,6 @@ interface ResultsPageProps {
 export function ResultsPage({
   recommendations,
   onRestart,
-  onOpenPreferences,
   initialDifficulty = "any",
   dataSource = "mock",
 }: ResultsPageProps) {
@@ -81,7 +79,7 @@ export function ResultsPage({
             >
               Start Over
             </Button>
-            <UserMenu onOpenPreferences={onOpenPreferences} />
+            <UserMenu />
           </div>
         </div>
       </header>

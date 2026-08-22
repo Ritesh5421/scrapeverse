@@ -3,11 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 
-interface UserMenuProps {
-  onOpenPreferences: () => void;
-}
-
-export function UserMenu({ onOpenPreferences }: UserMenuProps) {
+export function UserMenu() {
   const { user, signOut } = useAuth();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -55,16 +51,6 @@ export function UserMenu({ onOpenPreferences }: UserMenuProps) {
               {user.email}
             </p>
           </div>
-
-          <button
-            onClick={() => {
-              setOpen(false);
-              onOpenPreferences();
-            }}
-            className="w-full text-left px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors cursor-pointer"
-          >
-            Edit Preferences
-          </button>
 
           {user.preferences && (
             <div className="px-3 py-2 border-t border-border/50">

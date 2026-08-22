@@ -85,7 +85,6 @@ export default function Results() {
     <ResultsPage
       recommendations={recommendations}
       onRestart={() => router.push("/onboarding")}
-      onOpenPreferences={() => router.push("/preferences")}
       initialDifficulty={initialDifficulty}
       dataSource={dataSource}
     />

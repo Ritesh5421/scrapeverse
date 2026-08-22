@@ -8,7 +8,7 @@ const publicApiRoutes = [
   "/api/auth/session",
 ];
 
-const protectedPages = ["/results", "/preferences", "/onboarding"];
+const protectedPages = ["/results", "/onboarding"];
 
 export function proxy(request: NextRequest) {
   const session = request.cookies.get("session")?.value;
@@ -33,5 +33,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/api/:path*", "/results/:path*", "/preferences/:path*", "/onboarding/:path*"],
+  matcher: ["/api/:path*", "/results/:path*", "/onboarding/:path*"],
 };
