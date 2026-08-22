@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { UserMenu } from "@/components/account/user-menu";
 import { RecommendationGrid } from "./recommendation-grid";
@@ -8,6 +8,22 @@ import { FilterSidebar } from "./filter-sidebar";
 import { EmptyState } from "./empty-state";
 import { defaultFilters } from "@/lib/mock-data";
 import type { Filters, Recommendation } from "@/lib/types";
+
+interface ScrapeStatus {
+  lastScrapedAt: string | null;
+  repos: number;
+  issues: number;
+  readmes: number;
+}
+
+function timeSince(iso: string): string {
+  const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
 
 interface ResultsPageProps {
   recommendations: Recommendation[];
@@ -26,6 +42,14 @@ export function ResultsPage({
     ...defaultFilters,
     maxDifficulty: initialDifficulty,
   });
+  const [scrapeStatus, setScrapeStatus] = useState<ScrapeStatus | null>(null);
+
+  useEffect(() => {
+    fetch("/api/admin/status")
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setScrapeStatus)
+      .catch(() => {});
+  }, []);
 
   const filtered = useMemo(() => {
     return recommendations.filter((rec) => {
@@ -68,6 +92,14 @@ export function ResultsPage({
               >
                 {dataSource === "live" ? "Live data" : "Demo data"}
               </span>
+              {scrapeStatus && (
+                <>
+                  <span className="mx-1.5">·</span>
+                  <span className="text-muted-foreground/60" title={`${scrapeStatus.repos} repos, ${scrapeStatus.issues} issues, ${scrapeStatus.readmes} readmes`}>
+                    Scraped {scrapeStatus.lastScrapedAt ? timeSince(scrapeStatus.lastScrapedAt) : "never"}
+                  </span>
+                </>
+              )}
             </p>
           </div>
           <div className="flex items-center gap-2">
