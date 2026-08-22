@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ResultsPage } from "@/components/recommendations/results-page";
 import { useAuth } from "@/lib/auth-context";
 import { mockRecommendations } from "@/lib/mock-data";
-import type { Recommendation, Filters } from "@/lib/types";
+import type { Recommendation } from "@/lib/types";
 
 export default function Results() {
   const router = useRouter();
@@ -73,20 +73,11 @@ export default function Results() {
     );
   }
 
-  const initialDifficulty: Filters["maxDifficulty"] =
-    user?.preferences?.experienceLevel === "Beginner"
-      ? "beginner"
-      : user?.preferences?.experienceLevel === "Intermediate"
-      ? "intermediate"
-      : user?.preferences?.experienceLevel === "Advanced"
-      ? "advanced"
-      : "any";
-
   return (
     <ResultsPage
       recommendations={recommendations}
       onRestart={() => router.push("/onboarding")}
-      initialDifficulty={initialDifficulty}
+      initialDifficulty="any"
       dataSource={dataSource}
     />
   );
