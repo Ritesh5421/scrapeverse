@@ -28,6 +28,7 @@ export default function Results() {
       languages: allLanguages.join(","),
       interests: prefs.interests.join(","),
       goals: prefs.goals.join(","),
+      experience: prefs.experienceLevel ?? "",
     });
     if (prefs.timeCommitment) {
       params.set("timeCommitment", prefs.timeCommitment);

@@ -424,6 +424,9 @@ function calculateReadinessScore(
   const isBeginner = experienceLevel === "Beginner";
   const isAdvanced = experienceLevel === "Advanced";
 
+  // Base: it's an open issue in a repo active enough to be discovered
+  score += 10;
+
   // Contribution guide — critical for beginners, nice for others
   if (readme?.hasContributionGuide) {
     score += isBeginner ? 30 : isAdvanced ? 10 : 25;
@@ -433,9 +436,9 @@ function calculateReadinessScore(
   if (readme?.setupComplexity === "simple") {
     score += isBeginner ? 20 : 15;
   } else if (readme?.setupComplexity === "moderate") {
-    score += isBeginner ? 0 : 5;
+    score += isBeginner ? 5 : 10;
   } else if (readme?.setupComplexity === "complex") {
-    score += isBeginner ? -10 : isAdvanced ? 5 : -5;
+    score += isBeginner ? -5 : isAdvanced ? 10 : 0;
   }
 
   // Issue labels — beginners rely on explicit signals, advanced can handle anything
@@ -452,9 +455,9 @@ function calculateReadinessScore(
   // Issue freshness
   if (issueAge <= 7) score += 10;
   else if (issueAge <= 30) score += 5;
-  else if (issueAge > 90) score += isBeginner ? -15 : -5;
+  else if (issueAge > 90) score += isBeginner ? -10 : -5;
 
-  // Discussion activity
+  // Discussion activity — maintainer engagement signals accessibility
   if (comments >= 2 && comments <= 15) score += 10;
 
   // Project stability
@@ -596,14 +599,7 @@ export async function GET(request: NextRequest) {
     };
   });
 
-  let filtered = recommendations;
-  if (experience === "Beginner") {
-    filtered = recommendations.filter((r) => r.difficulty === "beginner");
-  } else if (experience === "Intermediate") {
-    filtered = recommendations.filter((r) => r.difficulty !== "advanced");
-  }
+  recommendations.sort((a, b) => b.matchScore.total - a.matchScore.total);
 
-  filtered.sort((a, b) => b.matchScore.total - a.matchScore.total);
-
-  return NextResponse.json({ recommendations: filtered, count: filtered.length, dataSource });
+  return NextResponse.json({ recommendations, count: recommendations.length, dataSource });
 }
