@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getIssuesWithRepo, isDataStale, triggerBackgroundScrape } from "@/lib/scraper-pipeline";
+import { getIssuesWithRepo } from "@/lib/scraper-pipeline";
 import type { Recommendation, MatchScore, MatchScoreBreakdown } from "@/lib/types";
 
 function classifyDifficulty(labels: string[]): "beginner" | "intermediate" | "advanced" {
@@ -491,11 +491,6 @@ export async function GET(request: NextRequest) {
   }
 
   let dataSource: "live" | "mock" = "mock";
-
-  const stale = await isDataStale();
-  if (stale) {
-    triggerBackgroundScrape();
-  }
 
   const issues = await getIssuesWithRepo({ languages, interests });
 
