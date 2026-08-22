@@ -38,12 +38,34 @@ export async function runScrapePipeline(): Promise<{
     const urls = await discoverTrendingRepos();
     discovered = urls.length;
 
-    if (urls.length === 0) {
-      errors.push("No trending repos discovered");
-      return { discovered: 0, scraped: 0, issuesScraped: 0, readmesScraped: 0, trendingRepos: [], errors };
+    let repoDataList: RepoData[] = [];
+
+    if (urls.length > 0) {
+      repoDataList = await fetchRepoDetailsBatch(urls);
+    } else {
+      const existingRepos = await db.scrapedRepo.findMany();
+      repoDataList = existingRepos.map((r) => ({
+        githubId: r.id,
+        repository_name: r.name,
+        owner: r.owner,
+        description: r.description || "",
+        language: r.language,
+        star_count: r.stars,
+        fork_count: r.forks,
+        topics: JSON.parse(r.topics || "[]"),
+        license: r.license || "",
+        default_branch: r.defaultBranch,
+        pushed_at: r.pushedAt?.toISOString() || null,
+      }));
+      if (repoDataList.length > 0) {
+        errors.push("BrightData returned 0 repos — falling back to DB (" + repoDataList.length + " repos)");
+      }
     }
 
-    const repoDataList = await fetchRepoDetailsBatch(urls);
+    if (repoDataList.length === 0) {
+      errors.push("No trending repos discovered and no repos in DB");
+      return { discovered: 0, scraped: 0, issuesScraped: 0, readmesScraped: 0, trendingRepos: [], errors };
+    }
 
     for (const repoData of repoDataList) {
       try {
