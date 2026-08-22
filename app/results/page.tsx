@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ResultsPage } from "@/components/recommendations/results-page";
 import { useAuth } from "@/lib/auth-context";
@@ -12,39 +12,51 @@ export default function Results() {
   const { user, isLoading } = useAuth();
   const [recommendations, setRecommendations] = useState<Recommendation[]>(mockRecommendations);
   const [dataSource, setDataSource] = useState<"live" | "mock">("mock");
-  const fetchedRef = useRef(false);
-
-  const hasLanguages = user?.preferences
-    ? [...user.preferences.languages, ...user.preferences.customLanguages].length > 0
-    : false;
 
   useEffect(() => {
     if (isLoading || !user) return;
-    if (fetchedRef.current) return;
-    if (!hasLanguages) return;
-    fetchedRef.current = true;
 
-    const allLanguages = [...user.preferences!.languages, ...user.preferences!.customLanguages];
+    const prefs = user.preferences;
+    if (!prefs) return;
+
+    const allLanguages = [...prefs.languages, ...prefs.customLanguages];
+    if (allLanguages.length === 0) return;
+
+    const controller = new AbortController();
 
     const params = new URLSearchParams({
       languages: allLanguages.join(","),
-      interests: user.preferences!.interests.join(","),
-      goals: user.preferences!.goals.join(","),
+      interests: prefs.interests.join(","),
+      goals: prefs.goals.join(","),
     });
-    if (user.preferences!.timeCommitment) {
-      params.set("timeCommitment", user.preferences!.timeCommitment);
+    if (prefs.timeCommitment) {
+      params.set("timeCommitment", prefs.timeCommitment);
     }
 
-    fetch(`/api/recommendations?${params}`)
-      .then((res) => (res.ok ? res.json() : null))
+    fetch(`/api/recommendations?${params}`, { signal: controller.signal })
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
       .then((data) => {
         if (data?.recommendations?.length > 0) {
           setRecommendations(data.recommendations);
           setDataSource(data.dataSource ?? "mock");
+        } else {
+          setDataSource("mock");
         }
       })
-      .catch(() => {});
-  }, [user, isLoading, hasLanguages]);
+      .catch((err) => {
+        if (err.name !== "AbortError") {
+          console.error("Failed to fetch recommendations:", err);
+          setDataSource("mock");
+        }
+      });
+
+    return () => {
+      controller.abort();
+    };
+  }, [user, isLoading]);
 
   useEffect(() => {
     if (!isLoading && !user) {

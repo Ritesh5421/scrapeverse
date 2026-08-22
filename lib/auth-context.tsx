@@ -6,6 +6,7 @@ import {
   useState,
   useCallback,
   useEffect,
+  useRef,
 } from "react";
 import type { User, OnboardingPreferences } from "./types";
 
@@ -33,12 +34,16 @@ async function fetchSession(): Promise<User | null> {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const sessionHydrated = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
     fetchSession().then((sessionUser) => {
       if (!cancelled) {
-        setUser(sessionUser);
+        if (!sessionHydrated.current) {
+          setUser(sessionUser);
+        }
+        sessionHydrated.current = true;
         setIsLoading(false);
       }
     });
@@ -61,6 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       const data = await res.json();
+      sessionHydrated.current = true;
       setUser(data.user);
       return data.user as User;
     },
@@ -80,6 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const data = await res.json();
+    sessionHydrated.current = true;
     setUser(data.user);
     return data.user as User;
   }, []);
