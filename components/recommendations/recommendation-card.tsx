@@ -47,7 +47,6 @@ const categoryColorMap: Record<string, string> = {
   issue: "text-emerald-400",
   project: "text-amber-400",
   goal: "text-rose-400",
-  fit: "text-teal-400",
 };
 
 function ScoreBreakdownGroup({ items, label }: { items: MatchScoreBreakdown[]; label: string }) {
@@ -80,7 +79,6 @@ export function RecommendationCard({ recommendation }: RecommendationCardProps) 
   const issueItems = matchScore.breakdown.filter((b) => b.category === "issue");
   const projectItems = matchScore.breakdown.filter((b) => b.category === "project");
   const goalItems = matchScore.breakdown.filter((b) => b.category === "goal");
-  const fitItems = matchScore.breakdown.filter((b) => b.category === "fit");
 
   return (
     <Card className="p-0 overflow-hidden border-border/50 hover:border-border transition-all duration-300 group">
@@ -120,9 +118,6 @@ export function RecommendationCard({ recommendation }: RecommendationCardProps) 
             <ScoreBreakdownGroup items={projectItems} label="Repo" />
             {goalItems.length > 0 && (
               <ScoreBreakdownGroup items={goalItems} label="Goal" />
-            )}
-            {fitItems.length > 0 && (
-              <ScoreBreakdownGroup items={fitItems} label="Time" />
             )}
           </div>
         )}

@@ -6,7 +6,7 @@ export interface User {
   preferences: OnboardingPreferences | null;
 }
 
-export type OnboardingStep = 1 | 2 | 3 | 4 | 5;
+export type OnboardingStep = 1 | 2 | 3 | 4;
 
 export type Interest =
   | "Compilers"
@@ -46,12 +46,6 @@ export type ProgrammingLanguage =
   | "Kotlin"
   | "Zig";
 
-export type TimeCommitment =
-  | "Less than 2 hours/week"
-  | "2–5 hours/week"
-  | "5–10 hours/week"
-  | "10+ hours/week";
-
 export interface ReadmeIntelligence {
   hasContributionGuide: boolean;
   setupComplexity: "simple" | "moderate" | "complex" | "unknown";
@@ -62,7 +56,7 @@ export interface ReadmeIntelligence {
 export interface MatchScoreBreakdown {
   label: string;
   points: number;
-  category: "language" | "interest" | "issue" | "project" | "goal" | "fit";
+  category: "language" | "interest" | "issue" | "project" | "goal";
 }
 
 export interface MatchScore {
@@ -98,7 +92,6 @@ export interface OnboardingPreferences {
   goals: Goal[];
   languages: ProgrammingLanguage[];
   customLanguages: string[];
-  timeCommitment: TimeCommitment | null;
 }
 
 export interface Filters {
@@ -128,10 +121,4 @@ export interface GoalOption {
 export interface LanguageOption {
   value: ProgrammingLanguage;
   label: string;
-}
-
-export interface TimeOption {
-  value: TimeCommitment;
-  label: string;
-  description: string;
 }

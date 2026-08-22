@@ -54,7 +54,6 @@ export async function POST(request: Request) {
           goals: JSON.parse(user.preferences.goals),
           languages: JSON.parse(user.preferences.languages),
           customLanguages: JSON.parse(user.preferences.customLanguages),
-          timeCommitment: user.preferences.timeCommitment,
         }
       : null;
 

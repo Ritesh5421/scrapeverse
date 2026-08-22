@@ -30,9 +30,6 @@ export default function Results() {
       goals: prefs.goals.join(","),
       experience: prefs.experienceLevel ?? "",
     });
-    if (prefs.timeCommitment) {
-      params.set("timeCommitment", prefs.timeCommitment);
-    }
 
     fetch(`/api/recommendations?${params}`, { signal: controller.signal })
       .then((res) => {

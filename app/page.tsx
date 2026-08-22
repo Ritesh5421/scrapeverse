@@ -12,7 +12,6 @@ import type {
   ExperienceLevel,
   Goal,
   ProgrammingLanguage,
-  TimeCommitment,
   OnboardingPreferences,
 } from "@/lib/types";
 
@@ -29,9 +28,6 @@ export default function Home() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [languages, setLanguages] = useState<ProgrammingLanguage[]>([]);
   const [customLanguages, setCustomLanguages] = useState<string[]>([]);
-  const [timeCommitment, setTimeCommitment] = useState<TimeCommitment | null>(
-    null
-  );
 
   const toggleItem = useCallback(
     <T,>(setter: React.Dispatch<React.SetStateAction<T[]>>, item: T) => {
@@ -74,9 +70,8 @@ export default function Home() {
       goals,
       languages,
       customLanguages,
-      timeCommitment,
     }),
-    [interests, experienceLevel, goals, languages, customLanguages, timeCommitment]
+    [interests, experienceLevel, goals, languages, customLanguages]
   );
 
   const handleGetStarted = () => {
@@ -97,7 +92,7 @@ export default function Home() {
   };
 
   const handleNext = () => {
-    setStep((prev) => Math.min(prev + 1, 5) as OnboardingStep);
+    setStep((prev) => Math.min(prev + 1, 4) as OnboardingStep);
   };
 
   const handleBack = () => {
@@ -134,14 +129,12 @@ export default function Home() {
         goals={goals}
         languages={languages}
         customLanguages={customLanguages}
-        timeCommitment={timeCommitment}
         onToggleInterest={handleToggleInterest}
         onSelectExperience={setExperienceLevel}
         onToggleGoal={handleToggleGoal}
         onToggleLanguage={handleToggleLanguage}
         onAddCustomLanguage={handleAddCustomLanguage}
         onRemoveCustomLanguage={handleRemoveCustomLanguage}
-        onSelectTime={setTimeCommitment}
         onNext={handleNext}
         onBack={handleBack}
         onComplete={handleComplete}

@@ -56,11 +56,7 @@ function generateWhyRecommended(
   issueAge: number,
   comments: number,
   isTrending: boolean,
-  goals: string[],
-  timeCommitment: string | null,
-  complexity: "low" | "medium" | "high",
-  goalSignals: { points: number; label: string }[],
-  timeFitSignal: { points: number; label: string } | null
+  goals: string[]
 ): string[] {
   const reasons: string[] = [];
   const topics: string[] = JSON.parse(repo.topics || "[]");
@@ -151,15 +147,11 @@ function generateWhyRecommended(
   if (goals.includes("Prepare for Jobs") && repo.stars > 10000) {
     reasons.push("Resume-worthy project with wide industry recognition.");
   }
-  if (goals.includes("Deep Technical Learning") && complexity === "high") {
+  if (goals.includes("Deep Technical Learning") && readme?.setupComplexity === "complex") {
     reasons.push("Deep technical challenge — great for skill growth.");
   }
   if (goals.includes("Learn New Technologies") && labels.includes("documentation")) {
     reasons.push("Documentation task — perfect for learning a new codebase.");
-  }
-
-  if (timeFitSignal && timeFitSignal.points > 0) {
-    reasons.push(`Fits your ${timeCommitment?.toLowerCase()} availability.`);
   }
 
   if (reasons.length === 0) {
@@ -179,8 +171,7 @@ function calculateMatchScore(
   issueAge: number,
   comments: number,
   experienceLevel: string | null,
-  goalSignals: { points: number; label: string }[],
-  timeFitSignal: { points: number; label: string } | null
+  goalSignals: { points: number; label: string }[]
 ): MatchScore {
   const breakdown: MatchScoreBreakdown[] = [];
   const topics: string[] = JSON.parse(repo.topics || "[]");
@@ -275,109 +266,148 @@ function calculateMatchScore(
     breakdown.push({ label: sig.label, points: sig.points, category: "goal" });
   }
 
-  // --- Time fit (max ~5, can go negative) ---
-  if (timeFitSignal) {
-    breakdown.push({ label: timeFitSignal.label, points: timeFitSignal.points, category: "fit" });
-  }
-
   const total = breakdown.reduce((sum, b) => sum + b.points, 0);
   return { total, breakdown };
-}
-
-function estimateIssueComplexity(
-  labels: string[],
-  readme: { setupComplexity: string } | null,
-  comments: number
-): "low" | "medium" | "high" {
-  const lower = labels.map((l) => l.toLowerCase());
-  if (
-    lower.some((l) => l.includes("good first issue") || l.includes("easy") || l.includes("beginner"))
-  ) {
-    return "low";
-  }
-  if (readme?.setupComplexity === "complex") return "high";
-  if (comments > 15) return "high";
-  if (
-    lower.some((l) => l.includes("help wanted") || l.includes("enhancement") || l.includes("documentation"))
-  ) {
-    return "medium";
-  }
-  return "medium";
 }
 
 function calculateGoalScore(
   goals: string[],
   labels: string[],
   repo: { stars: number },
-  readme: { hasContributionGuide: boolean; setupComplexity: string } | null,
+  readme: { hasContributionGuide: boolean; setupComplexity: string; techStack: string[]; architectureKeywords: string[] } | null,
+  issueAge: number,
+  comments: number,
   difficulty: string
 ): { points: number; label: string }[] {
   const signals: { points: number; label: string }[] = [];
   const lower = labels.map((l) => l.toLowerCase());
+  const hasGuide = readme?.hasContributionGuide ?? false;
+  const setup = readme?.setupComplexity ?? "unknown";
+  const techCount = readme?.techStack?.length ?? 0;
 
   for (const goal of goals) {
     switch (goal) {
       case "First Open Source Contribution": {
         if (lower.some((l) => l.includes("good first issue"))) {
-          signals.push({ points: 5, label: "First contribution pick" });
+          signals.push({ points: 5, label: "Labeled good-first-issue" });
         }
-        if (readme?.hasContributionGuide) {
-          signals.push({ points: 3, label: "Contribution guide" });
+        if (hasGuide) {
+          signals.push({ points: 3, label: "Has contribution guide" });
         }
-        if (readme?.setupComplexity === "simple") {
-          signals.push({ points: 3, label: "Simple setup" });
+        if (setup === "simple") {
+          signals.push({ points: 3, label: "Simple project setup" });
+        }
+        if (issueAge <= 14) {
+          signals.push({ points: 2, label: "Recently opened" });
+        }
+        if (difficulty === "beginner") {
+          signals.push({ points: 2, label: "Beginner-friendly issue" });
+        }
+        if (lower.some((l) => l.includes("help wanted"))) {
+          signals.push({ points: 2, label: "Maintainers requesting help" });
         }
         break;
       }
       case "Build Portfolio": {
         if (repo.stars > 10000) {
-          signals.push({ points: 5, label: "Portfolio-worthy project" });
+          signals.push({ points: 5, label: "10k+ star project" });
         } else if (repo.stars > 1000) {
-          signals.push({ points: 3, label: "Visible project" });
+          signals.push({ points: 3, label: "1k+ star project" });
+        } else if (repo.stars > 100) {
+          signals.push({ points: 1, label: "Growing project" });
+        }
+        if (lower.some((l) => l.includes("bug") || l.includes("enhancement"))) {
+          signals.push({ points: 3, label: "Bug fix or feature" });
+        }
+        if (lower.some((l) => l.includes("help wanted"))) {
+          signals.push({ points: 2, label: "Open for contribution" });
+        }
+        if (hasGuide) {
+          signals.push({ points: 2, label: "Contribution guidelines exist" });
         }
         break;
       }
       case "Learn New Technologies": {
+        if (techCount > 3) {
+          signals.push({ points: 4, label: `Diverse tech stack (${techCount} tools)` });
+        } else if (techCount > 0) {
+          signals.push({ points: 2, label: "Identifiable tech stack" });
+        }
         if (lower.some((l) => l.includes("documentation") || l.includes("docs"))) {
-          signals.push({ points: 5, label: "Documentation task" });
+          signals.push({ points: 3, label: "Documentation task" });
         }
         if (repo.stars > 1000) {
-          signals.push({ points: 3, label: "Established codebase" });
+          signals.push({ points: 2, label: "Established codebase to study" });
+        }
+        if (lower.some((l) => l.includes("enhancement") || l.includes("feature"))) {
+          signals.push({ points: 2, label: "Feature work — learn by doing" });
         }
         break;
       }
       case "Find Mentors": {
         if (lower.some((l) => l.includes("help wanted"))) {
-          signals.push({ points: 5, label: "Maintainers seeking help" });
+          signals.push({ points: 4, label: "Maintainers actively seeking help" });
+        }
+        if (hasGuide) {
+          signals.push({ points: 3, label: "Contributor onboarding documented" });
+        }
+        if (comments >= 3) {
+          signals.push({ points: 3, label: `${comments} comments — active thread` });
         }
         if (repo.stars > 1000) {
-          signals.push({ points: 3, label: "Active community" });
+          signals.push({ points: 2, label: "Established community" });
         }
         break;
       }
       case "Contribute to Production Systems": {
         if (repo.stars > 10000) {
-          signals.push({ points: 8, label: "Production-grade project" });
+          signals.push({ points: 6, label: "Production-grade project" });
         } else if (repo.stars > 1000) {
-          signals.push({ points: 5, label: "Growing production project" });
+          signals.push({ points: 4, label: "Production-use project" });
+        }
+        if (lower.some((l) => l.includes("bug"))) {
+          signals.push({ points: 3, label: "Bug fix — real-world impact" });
+        }
+        if (readme?.architectureKeywords?.length) {
+          signals.push({ points: 2, label: "Architecture documented" });
+        }
+        if (lower.some((l) => l.includes("enhancement") || l.includes("feature"))) {
+          signals.push({ points: 2, label: "Feature work in production code" });
         }
         break;
       }
       case "Prepare for Jobs": {
         if (repo.stars > 10000) {
-          signals.push({ points: 5, label: "Resume-worthy project" });
+          signals.push({ points: 4, label: "Resume-worthy project" });
+        } else if (repo.stars > 1000) {
+          signals.push({ points: 2, label: "Notable project" });
         }
         if (lower.some((l) => l.includes("good first issue"))) {
           signals.push({ points: 3, label: "Quick win for portfolio" });
         }
+        if (lower.some((l) => l.includes("bug") || l.includes("enhancement"))) {
+          signals.push({ points: 2, label: "Concrete deliverable" });
+        }
+        if (hasGuide) {
+          signals.push({ points: 2, label: "Professional contribution process" });
+        }
         break;
       }
       case "Deep Technical Learning": {
-        if (readme?.setupComplexity === "complex") {
-          signals.push({ points: 5, label: "Complex system to explore" });
+        if (setup === "complex") {
+          signals.push({ points: 4, label: "Complex system to explore" });
         }
         if (difficulty === "advanced") {
           signals.push({ points: 3, label: "Advanced challenge" });
+        }
+        if (readme?.architectureKeywords?.length) {
+          signals.push({ points: 2, label: "Architecture keywords present" });
+        }
+        if (lower.some((l) => l.includes("enhancement") || l.includes("feature"))) {
+          signals.push({ points: 2, label: "Feature work — deep codebase understanding" });
+        }
+        if (repo.stars > 1000) {
+          signals.push({ points: 1, label: "Mature codebase" });
         }
         break;
       }
@@ -385,30 +415,6 @@ function calculateGoalScore(
   }
 
   return signals;
-}
-
-function calculateTimeFitScore(
-  timeCommitment: string,
-  complexity: "low" | "medium" | "high"
-): { points: number; label: string } | null {
-  switch (timeCommitment) {
-    case "Less than 2 hours/week":
-      if (complexity === "low") return { points: 5, label: "Quick task" };
-      if (complexity === "high") return { points: -4, label: "Time-intensive" };
-      return null;
-    case "2–5 hours/week":
-      if (complexity === "low") return { points: 3, label: "Manageable task" };
-      if (complexity === "high") return { points: -2, label: "Needs more time" };
-      return null;
-    case "5–10 hours/week":
-      if (complexity === "high") return { points: 2, label: "Good use of time" };
-      return null;
-    case "10+ hours/week":
-      if (complexity === "high") return { points: 4, label: "Deep dive ready" };
-      return null;
-    default:
-      return null;
-  }
 }
 
 function calculateReadinessScore(
@@ -471,7 +477,6 @@ export async function GET(request: NextRequest) {
   const languagesRaw = searchParams.get("languages");
   const interestsRaw = searchParams.get("interests");
   const goalsRaw = searchParams.get("goals");
-  const timeCommitment = searchParams.get("timeCommitment");
   const experience = searchParams.get("experience");
 
   const languages = languagesRaw ? languagesRaw.split(",").filter(Boolean) : [];
@@ -522,19 +527,15 @@ export async function GET(request: NextRequest) {
         }
       : null;
 
-    const complexity = estimateIssueComplexity(labels, readmeData, issue.comments);
-
     const goalSignals = calculateGoalScore(
       goals,
       labels,
       { stars: issue.repo.stars },
       readmeData,
+      issueAge,
+      issue.comments,
       difficulty
     );
-
-    const timeFitSignal = timeCommitment
-      ? calculateTimeFitScore(timeCommitment, complexity)
-      : null;
 
     const matchScore = calculateMatchScore(
       languages,
@@ -546,8 +547,7 @@ export async function GET(request: NextRequest) {
       issueAge,
       issue.comments,
       experience,
-      goalSignals,
-      timeFitSignal
+      goalSignals
     );
 
     const whyRecommended = generateWhyRecommended(
@@ -560,11 +560,7 @@ export async function GET(request: NextRequest) {
       issueAge,
       issue.comments,
       isTrending,
-      goals,
-      timeCommitment,
-      complexity,
-      goalSignals,
-      timeFitSignal
+      goals
     );
 
     const readinessScore = calculateReadinessScore(

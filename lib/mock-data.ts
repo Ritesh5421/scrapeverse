@@ -3,7 +3,6 @@ import type {
   ExperienceOption,
   GoalOption,
   LanguageOption,
-  TimeOption,
   Recommendation,
 } from "./types";
 
@@ -96,29 +95,6 @@ export const languageOptions: LanguageOption[] = [
   { value: "Java", label: "Java" },
   { value: "Kotlin", label: "Kotlin" },
   { value: "Zig", label: "Zig" },
-];
-
-export const timeOptions: TimeOption[] = [
-  {
-    value: "Less than 2 hours/week",
-    label: "Casual",
-    description: "A few hours on weekends",
-  },
-  {
-    value: "2–5 hours/week",
-    label: "Part-time",
-    description: "Consistent weekly contributions",
-  },
-  {
-    value: "5–10 hours/week",
-    label: "Serious",
-    description: "Significant time investment",
-  },
-  {
-    value: "10+ hours/week",
-    label: "Full-time",
-    description: "Dedicated contributor",
-  },
 ];
 
 export const mockRecommendations: Recommendation[] = [

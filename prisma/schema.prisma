@@ -22,12 +22,11 @@ model UserPreferences {
   id              String   @id @default(cuid())
   userId          String   @unique
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  interests       String   @default("[]")
+  interests       String        @default("[]")
   experienceLevel String?
-  goals           String   @default("[]")
-  languages       String   @default("[]")
-  customLanguages String   @default("[]")
-  timeCommitment  String?
+  goals           String        @default("[]")
+  languages       String        @default("[]")
+  customLanguages String        @default("[]")
   updatedAt       DateTime @updatedAt
 }
 

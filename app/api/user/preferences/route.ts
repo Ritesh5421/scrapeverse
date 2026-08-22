@@ -33,7 +33,6 @@ export async function GET() {
         goals: JSON.parse(prefs.goals),
         languages: JSON.parse(prefs.languages),
         customLanguages: JSON.parse(prefs.customLanguages),
-        timeCommitment: prefs.timeCommitment,
       },
     });
   } catch (error) {
@@ -53,7 +52,7 @@ export async function PUT(request: Request) {
     }
 
     const body = await request.json();
-    const { interests, experienceLevel, goals, languages, customLanguages, timeCommitment } = body;
+    const { interests, experienceLevel, goals, languages, customLanguages } = body;
 
     const data = {
       interests: JSON.stringify(interests ?? []),
@@ -61,7 +60,6 @@ export async function PUT(request: Request) {
       goals: JSON.stringify(goals ?? []),
       languages: JSON.stringify(languages ?? []),
       customLanguages: JSON.stringify(customLanguages ?? []),
-      timeCommitment: timeCommitment ?? null,
     };
 
     const prefs = await db.userPreferences.upsert({
@@ -77,7 +75,6 @@ export async function PUT(request: Request) {
         goals: JSON.parse(prefs.goals),
         languages: JSON.parse(prefs.languages),
         customLanguages: JSON.parse(prefs.customLanguages),
-        timeCommitment: prefs.timeCommitment,
       },
     });
   } catch (error) {

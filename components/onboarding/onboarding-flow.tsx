@@ -5,7 +5,6 @@ import { StepInterests } from "./step-interests";
 import { StepExperience } from "./step-experience";
 import { StepGoals } from "./step-goals";
 import { StepLanguages } from "./step-languages";
-import { StepTime } from "./step-time";
 import { Button } from "@/components/ui/button";
 import type {
   OnboardingStep,
@@ -13,7 +12,6 @@ import type {
   ExperienceLevel,
   Goal,
   ProgrammingLanguage,
-  TimeCommitment,
 } from "@/lib/types";
 
 interface OnboardingFlowProps {
@@ -23,20 +21,18 @@ interface OnboardingFlowProps {
   goals: Goal[];
   languages: ProgrammingLanguage[];
   customLanguages: string[];
-  timeCommitment: TimeCommitment | null;
   onToggleInterest: (interest: Interest) => void;
   onSelectExperience: (level: ExperienceLevel) => void;
   onToggleGoal: (goal: Goal) => void;
   onToggleLanguage: (lang: ProgrammingLanguage) => void;
   onAddCustomLanguage: (lang: string) => void;
   onRemoveCustomLanguage: (lang: string) => void;
-  onSelectTime: (time: TimeCommitment) => void;
   onNext: () => void;
   onBack: () => void;
   onComplete: () => void;
 }
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 4;
 
 function canProceed(
   step: OnboardingStep,
@@ -44,8 +40,7 @@ function canProceed(
   experienceLevel: ExperienceLevel | null,
   goals: Goal[],
   languages: ProgrammingLanguage[],
-  customLanguages: string[],
-  timeCommitment: TimeCommitment | null
+  customLanguages: string[]
 ): boolean {
   switch (step) {
     case 1:
@@ -56,8 +51,6 @@ function canProceed(
       return goals.length > 0;
     case 4:
       return languages.length > 0 || customLanguages.length > 0;
-    case 5:
-      return timeCommitment !== null;
     default:
       return false;
   }
@@ -70,27 +63,24 @@ export function OnboardingFlow({
   goals,
   languages,
   customLanguages,
-  timeCommitment,
   onToggleInterest,
   onSelectExperience,
   onToggleGoal,
   onToggleLanguage,
   onAddCustomLanguage,
   onRemoveCustomLanguage,
-  onSelectTime,
   onNext,
   onBack,
   onComplete,
 }: OnboardingFlowProps) {
-  const isLastStep = currentStep === 5;
+  const isLastStep = currentStep === 4;
   const canGo = canProceed(
     currentStep,
     interests,
     experienceLevel,
     goals,
     languages,
-    customLanguages,
-    timeCommitment
+    customLanguages
   );
 
   return (
@@ -118,9 +108,6 @@ export function OnboardingFlow({
             onAddCustom={onAddCustomLanguage}
             onRemoveCustom={onRemoveCustomLanguage}
           />
-        )}
-        {currentStep === 5 && (
-          <StepTime selected={timeCommitment} onSelect={onSelectTime} />
         )}
       </div>
 
