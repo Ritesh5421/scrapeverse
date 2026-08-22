@@ -22,9 +22,9 @@ jobs:
 
       - run: npm ci
 
-      - run: npx tsx scripts/scrape.ts
+      - run: npx tsx --env-file=.env scripts/scrape.ts
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
           BRIGHTDATA_API_KEY: ${{ secrets.BRIGHTDATA_API_KEY }}
           BRIGHTDATA_ZONE: ${{ secrets.BRIGHTDATA_ZONE }}
