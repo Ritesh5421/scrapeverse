@@ -601,5 +601,34 @@ export async function GET(request: NextRequest) {
 
   recommendations.sort((a, b) => b.matchScore.total - a.matchScore.total);
 
-  return NextResponse.json({ recommendations, count: recommendations.length, dataSource });
+  const MAX_PER_REPO = 4;
+
+  const byRepo = new Map<string, typeof recommendations>();
+  for (const rec of recommendations) {
+    const key = `${rec.organization}/${rec.repository}`;
+    const list = byRepo.get(key);
+    if (list) {
+      list.push(rec);
+    } else {
+      byRepo.set(key, [rec]);
+    }
+  }
+
+  const queues = [...byRepo.values()]
+    .map((recs) => recs.slice(0, MAX_PER_REPO))
+    .sort((a, b) => b.length - a.length);
+
+  const diversified: typeof recommendations = [];
+  let keepGoing = true;
+  while (keepGoing) {
+    keepGoing = false;
+    for (const queue of queues) {
+      if (queue.length > 0) {
+        diversified.push(queue.shift()!);
+        keepGoing = true;
+      }
+    }
+  }
+
+  return NextResponse.json({ recommendations: diversified, count: diversified.length, dataSource });
 }
