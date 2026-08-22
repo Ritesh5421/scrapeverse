@@ -416,29 +416,48 @@ function calculateReadinessScore(
   comments: number,
   issueAge: number,
   readme: { hasContributionGuide: boolean; setupComplexity: string } | null,
-  repoStars: number
+  repoStars: number,
+  experienceLevel: string | null
 ): number {
   let score = 0;
-
-  if (readme?.hasContributionGuide) score += 25;
-
-  if (readme?.setupComplexity === "simple") score += 15;
-  else if (readme?.setupComplexity === "moderate") score += 5;
-  else if (readme?.setupComplexity === "complex") score -= 5;
-
   const lower = labels.map((l) => l.toLowerCase());
-  if (lower.some((l) => l.includes("good first issue"))) score += 15;
-  if (lower.some((l) => l.includes("help wanted"))) score += 10;
-  if (lower.some((l) => l.includes("documentation") || l.includes("docs"))) score += 5;
+  const isBeginner = experienceLevel === "Beginner";
+  const isAdvanced = experienceLevel === "Advanced";
 
+  // Contribution guide — critical for beginners, nice for others
+  if (readme?.hasContributionGuide) {
+    score += isBeginner ? 30 : isAdvanced ? 10 : 25;
+  }
+
+  // Setup complexity
+  if (readme?.setupComplexity === "simple") {
+    score += isBeginner ? 20 : 15;
+  } else if (readme?.setupComplexity === "moderate") {
+    score += isBeginner ? 0 : 5;
+  } else if (readme?.setupComplexity === "complex") {
+    score += isBeginner ? -10 : isAdvanced ? 5 : -5;
+  }
+
+  // Issue labels — beginners rely on explicit signals, advanced can handle anything
+  if (lower.some((l) => l.includes("good first issue"))) {
+    score += isBeginner ? 20 : isAdvanced ? 5 : 15;
+  }
+  if (lower.some((l) => l.includes("help wanted"))) {
+    score += isAdvanced ? 15 : 10;
+  }
+  if (lower.some((l) => l.includes("documentation") || l.includes("docs"))) {
+    score += 5;
+  }
+
+  // Issue freshness
   if (issueAge <= 7) score += 10;
   else if (issueAge <= 30) score += 5;
-  else if (issueAge > 90) score -= 10;
+  else if (issueAge > 90) score += isBeginner ? -15 : -5;
 
+  // Discussion activity
   if (comments >= 2 && comments <= 15) score += 10;
 
-  if (readme?.hasContributionGuide !== undefined) score += 5;
-
+  // Project stability
   if (repoStars > 10000) score += 5;
 
   return Math.max(0, Math.min(100, score));
@@ -550,7 +569,8 @@ export async function GET(request: NextRequest) {
       issue.comments,
       issueAge,
       readmeData,
-      issue.repo.stars
+      issue.repo.stars,
+      experience
     );
 
     return {
