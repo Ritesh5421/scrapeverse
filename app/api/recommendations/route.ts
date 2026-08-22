@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getIssuesWithRepo, isDataStale, runScrapePipeline } from "@/lib/scraper-pipeline";
+import { getIssuesWithRepo, isDataStale, triggerBackgroundScrape } from "@/lib/scraper-pipeline";
 import type { Recommendation, MatchScore, MatchScoreBreakdown } from "@/lib/types";
 
 function classifyDifficulty(labels: string[]): "beginner" | "intermediate" | "advanced" {
@@ -491,16 +491,10 @@ export async function GET(request: NextRequest) {
   }
 
   let dataSource: "live" | "mock" = "mock";
-  let trendingRepos: string[] = [];
 
   const stale = await isDataStale();
   if (stale) {
-    try {
-      const result = await runScrapePipeline();
-      trendingRepos = result.trendingRepos;
-    } catch (err) {
-      console.error("Auto-scrape failed:", err);
-    }
+    triggerBackgroundScrape();
   }
 
   const issues = await getIssuesWithRepo({ languages, interests });
@@ -514,8 +508,7 @@ export async function GET(request: NextRequest) {
     const repoTopics = JSON.parse(issue.repo.topics || "[]");
     const difficulty = classifyDifficulty(labels);
     const matchedLabels = matchLabels(labels, interests);
-    const fullName = `${issue.repo.owner}/${issue.repo.name}`;
-    const isTrending = trendingRepos.includes(fullName);
+    const isTrending = false;
     const issueAge = daysSince(issue.createdAt?.toISOString() ?? null);
 
     const readmeData = issue.repo.readme

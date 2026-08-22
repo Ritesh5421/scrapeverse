@@ -1,0 +1,1 @@
+ALTER TABLE "ScrapedIssue" ADD COLUMN "state" TEXT NOT NULL DEFAULT 'open';

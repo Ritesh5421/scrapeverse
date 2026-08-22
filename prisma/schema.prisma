@@ -58,6 +58,7 @@ model ScrapedIssue {
   title           String
   url             String
   labels          String   @default("[]")
+  state           String   @default("open")
   comments        Int      @default(0)
   author          String?
   createdAt       DateTime?

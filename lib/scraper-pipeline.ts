@@ -12,6 +12,8 @@ import { fetchAndAnalyzeReadme } from "./readme-analyzer";
 
 const SCRAPE_STALENESS_MS = 6 * 60 * 60 * 1000;
 
+let scraping = false;
+
 export async function runScrapePipeline(): Promise<{
   discovered: number;
   scraped: number;
@@ -20,6 +22,11 @@ export async function runScrapePipeline(): Promise<{
   trendingRepos: string[];
   errors: string[];
 }> {
+  if (scraping) {
+    return { discovered: 0, scraped: 0, issuesScraped: 0, readmesScraped: 0, trendingRepos: [], errors: ["Scrape already in progress"] };
+  }
+
+  scraping = true;
   const errors: string[] = [];
   let discovered = 0;
   let scraped = 0;
@@ -62,6 +69,7 @@ export async function runScrapePipeline(): Promise<{
   } catch (err) {
     errors.push(`Pipeline error: ${err}`);
   } finally {
+    scraping = false;
     await closeClient();
   }
 
@@ -97,13 +105,18 @@ export async function runScrapeForRepo(fullName: string): Promise<boolean> {
   }
 }
 
-async function upsertRepo(data: RepoData): Promise<number> {
-  const githubId = hashFullName(data.owner, data.repository_name);
+export function triggerBackgroundScrape(): void {
+  if (scraping) return;
+  runScrapePipeline().catch((err) => {
+    console.error("Background scrape failed:", err);
+  });
+}
 
+async function upsertRepo(data: RepoData): Promise<number> {
   await db.scrapedRepo.upsert({
     where: { fullName: `${data.owner}/${data.repository_name}` },
     create: {
-      id: githubId,
+      id: data.githubId,
       fullName: `${data.owner}/${data.repository_name}`,
       owner: data.owner,
       name: data.repository_name,
@@ -130,7 +143,7 @@ async function upsertRepo(data: RepoData): Promise<number> {
     },
   });
 
-  return githubId;
+  return data.githubId;
 }
 
 async function upsertIssue(repoId: number, data: IssueData): Promise<void> {
@@ -142,6 +155,7 @@ async function upsertIssue(repoId: number, data: IssueData): Promise<void> {
       title: data.title,
       url: data.url,
       labels: JSON.stringify(data.labels),
+      state: "open",
       comments: data.comments,
       author: data.author,
       createdAt: new Date(data.createdAt),
@@ -149,6 +163,7 @@ async function upsertIssue(repoId: number, data: IssueData): Promise<void> {
     update: {
       title: data.title,
       labels: JSON.stringify(data.labels),
+      state: "open",
       comments: data.comments,
       scrapedAt: new Date(),
     },
@@ -189,16 +204,6 @@ async function upsertReadme(
   });
 }
 
-function hashFullName(owner: string, name: string): number {
-  const str = `${owner}/${name}`;
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash + char) | 0;
-  }
-  return Math.abs(hash);
-}
-
 export async function getIssuesWithRepo(filters: {
   languages: string[];
   interests: string[];
@@ -231,7 +236,9 @@ export async function getIssuesWithRepo(filters: {
     };
   }[]
 > {
-  const where: Record<string, unknown> = {};
+  const where: Record<string, unknown> = {
+    state: "open",
+  };
 
   if (filters.languages.length > 0) {
     const languageOr = filters.languages.map((lang) => ({
@@ -262,9 +269,12 @@ export async function getIssuesWithRepo(filters: {
 }
 
 export async function isDataStale(): Promise<boolean> {
-  const latest = await db.scrapedRepo.findFirst({
-    orderBy: { scrapedAt: "desc" },
+  const count = await db.scrapedRepo.count();
+  if (count === 0) return true;
+
+  const oldest = await db.scrapedRepo.findFirst({
+    orderBy: { scrapedAt: "asc" },
   });
-  if (!latest) return true;
-  return Date.now() - latest.scrapedAt.getTime() > SCRAPE_STALENESS_MS;
+  if (!oldest) return true;
+  return Date.now() - oldest.scrapedAt.getTime() > SCRAPE_STALENESS_MS;
 }

@@ -22,6 +22,7 @@ export interface TrendingEntry {
 }
 
 export interface RepoData {
+  githubId: number;
   repository_name: string;
   owner: string;
   description: string;
@@ -74,6 +75,7 @@ export async function fetchRepoDetails(owner: string, repo: string): Promise<Rep
   const data = await res.json();
 
   return {
+    githubId: data.id,
     repository_name: data.name,
     owner: data.owner.login,
     description: data.description || "",
